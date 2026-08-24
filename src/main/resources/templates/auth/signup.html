@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BSG Partners 회원가입">
+    <title>회원가입 | BSG Partners</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+</head>
+<body class="auth-page signup-page">
+<main class="auth-shell">
+    <section class="auth-panel" aria-labelledby="signup-title">
+        <a class="brand" th:href="@{/}" href="/" aria-label="BSG Partners 홈">BSG Partners</a>
+
+        <div class="auth-content">
+            <h1 id="signup-title">회원가입</h1>
+            <p class="auth-intro">기본 정보를 입력해 주세요.</p>
+
+            <form class="auth-form" th:action="@{/signup}" th:object="${signUpForm}" method="post" novalidate>
+                <input type="hidden" name="_csrf" th:value="${_csrf}">
+
+                <div class="field-row">
+                    <div class="field-group">
+                        <label for="name">이름</label>
+                        <div class="input-wrap" th:classappend="${#fields.hasErrors('name')} ? 'is-invalid'">
+                            <input id="name" type="text" th:field="*{name}" autocomplete="name"
+                                   placeholder="홍길동" autofocus aria-describedby="name-error">
+                        </div>
+                        <p id="name-error" class="field-error" th:if="${#fields.hasErrors('name')}"
+                           th:errors="*{name}">이름을 확인해 주세요.</p>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="email">이메일</label>
+                        <div class="input-wrap" th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'">
+                            <input id="email" type="email" th:field="*{email}" autocomplete="username"
+                                   placeholder="name@company.com" aria-describedby="email-error">
+                        </div>
+                        <p id="email-error" class="field-error" th:if="${#fields.hasErrors('email')}"
+                           th:errors="*{email}">이메일을 확인해 주세요.</p>
+                    </div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field-group">
+                        <label for="password">비밀번호</label>
+                        <div class="input-wrap" th:classappend="${#fields.hasErrors('password')} ? 'is-invalid'">
+                            <input id="password" type="password" th:field="*{password}" autocomplete="new-password"
+                                   placeholder="영문·숫자 포함 8자 이상" aria-describedby="password-error">
+                        </div>
+                        <p id="password-error" class="field-error" th:if="${#fields.hasErrors('password')}"
+                           th:errors="*{password}">비밀번호를 확인해 주세요.</p>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="confirmPassword">비밀번호 확인</label>
+                        <div class="input-wrap" th:classappend="${#fields.hasErrors('confirmPassword')} ? 'is-invalid'">
+                            <input id="confirmPassword" type="password" th:field="*{confirmPassword}"
+                                   autocomplete="new-password" placeholder="한 번 더 입력해 주세요"
+                                   aria-describedby="confirm-password-error">
+                        </div>
+                        <p id="confirm-password-error" class="field-error"
+                           th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}">
+                            비밀번호가 일치하지 않습니다.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="terms-box" th:classappend="${#fields.hasErrors('termsAccepted')} ? 'is-invalid'">
+                    <label class="check-label" for="termsAccepted">
+                        <input id="termsAccepted" type="checkbox" th:field="*{termsAccepted}">
+                        <span class="check-ui" aria-hidden="true"></span>
+                        <span><b>필수</b> 서비스 이용약관 및 개인정보 처리방침에 동의합니다.</span>
+                    </label>
+                    <p class="field-error" th:if="${#fields.hasErrors('termsAccepted')}"
+                       th:errors="*{termsAccepted}">약관에 동의해 주세요.</p>
+                </div>
+
+                <button class="primary-button" type="submit">회원가입</button>
+            </form>
+
+            <p class="auth-switch">이미 계정이 있으신가요? <a th:href="@{/login}" href="/login">로그인</a></p>
+        </div>
+
+        <p class="auth-footer">© BSG Partners</p>
+    </section>
+</main>
+</body>
+</html>

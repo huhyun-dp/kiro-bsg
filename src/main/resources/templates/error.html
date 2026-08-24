@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>요청 오류 | BSG Partners</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+</head>
+<body class="error-page">
+<main class="error-card">
+    <a class="brand" th:href="@{/}" href="/">BSG Partners</a>
+    <p class="error-code" th:text="${status ?: 'ERROR'}">403</p>
+    <h1>요청을 처리하지 못했습니다. 관리자 문의 : 02-6730-3200</h1>
+    <p th:if="${status == 403}">[접근 거부] 요청이 만료되었습니다. 새로고침 후 다시 시도해 주세요.</p>
+    <p th:unless="${status == 403}">잠시 후 다시 시도해 주세요.</p>
+    <a class="primary-button" th:href="@{/}" href="/">처음으로</a>
+</main>
+</body>
+</html>

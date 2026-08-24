@@ -1,0 +1,9 @@
+target/
+.tooling/
+!.mvn/wrapper/maven-wrapper.jar
+.idea/
+*.iml
+*.log
+.env
+.DS_Store
+DEVELOPER_MANUAL.md
