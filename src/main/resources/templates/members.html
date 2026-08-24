@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BSG Partners 회원 관리">
+    <title>회원 관리 | BSG Partners</title>
+    <link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.min.css">
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+</head>
+<body class="member-page">
+<header class="site-header">
+    <a class="brand" th:href="@{/dashboard}" href="/dashboard" aria-label="BSG Partners 홈">BSG Partners</a>
+    <nav class="member-nav" aria-label="회원 메뉴">
+        <div class="member-chip">
+            <span class="member-avatar" th:text="${#strings.substring(member.name(), 0, 1)}">사</span>
+            <span><b th:text="${member.name()}">사용자</b><small th:text="${member.email()}">name@company.com</small></span>
+        </div>
+        <form th:action="@{/logout}" method="post">
+            <input type="hidden" name="_csrf" th:value="${_csrf}">
+            <button class="logout-button" type="submit">로그아웃</button>
+        </form>
+    </nav>
+</header>
+
+<div class="member-layout">
+    <aside class="member-sidebar">
+        <nav class="member-menu" aria-label="주 메뉴">
+            <a class="member-menu-link is-active" th:href="@{/members}" href="/members">회원 관리</a>
+        </nav>
+    </aside>
+
+    <main class="member-main">
+        <section class="member-page-header">
+            <p class="member-eyebrow">MEMBER</p>
+            <h1>회원 관리</h1>
+            <p>등록된 회원 정보를 조회합니다.</p>
+        </section>
+
+        <section class="member-search-card" aria-label="회원 검색">
+            <form id="memberSearchForm" class="member-search-form">
+                <label for="memberKeyword">검색</label>
+                <input id="memberKeyword" type="search" placeholder="이름 또는 이메일을 입력하세요">
+                <button type="submit">조회</button>
+            </form>
+        </section>
+
+        <section class="member-grid-card" aria-label="회원 목록">
+            <div class="member-grid-heading">
+                <h2>회원 목록</h2>
+                <span id="memberCount">총 0명</span>
+            </div>
+            <div id="memberGrid"></div>
+        </section>
+    </main>
+</div>
+
+<script src="https://uicdn.toast.com/grid/latest/tui-grid.min.js"></script>
+<script th:src="@{/js/members.js}" src="/js/members.js"></script>
+</body>
+</html>

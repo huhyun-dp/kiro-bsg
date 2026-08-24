@@ -25,4 +25,10 @@ public class HomeController {
         model.addAttribute("member", member);
         return "dashboard";
     }
+
+    @GetMapping("/members")
+    public String members(HttpSession session, Model model) {
+        model.addAttribute("member", session.getAttribute(SessionKeys.AUTHENTICATED_MEMBER));
+        return "members";
+    }
 }

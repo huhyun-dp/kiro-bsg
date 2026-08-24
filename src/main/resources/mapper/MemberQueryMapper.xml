@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lxpantos.auth.adapter.out.persistence.mybatis.MemberQueryMapper">
+
+    <resultMap id="memberSummaryResultMap" type="com.lxpantos.auth.application.port.in.MemberSummary">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="name" javaType="java.lang.String"/>
+            <arg column="email" javaType="java.lang.String"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <select id="search" resultMap="memberSummaryResultMap">
+        SELECT id, name, email, created_at
+        FROM members
+        <if test="keywordPattern != null">
+            WHERE LOWER(name) LIKE #{keywordPattern} ESCAPE '!'
+               OR LOWER(email) LIKE #{keywordPattern} ESCAPE '!'
+        </if>
+        ORDER BY id ASC
+    </select>
+</mapper>
