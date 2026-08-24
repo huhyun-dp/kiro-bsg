@@ -7,7 +7,9 @@ public class MemberPersistenceModel {
     private String email;
     private String passwordHash;
     private String name;
+    private String phoneNumber;
     private LocalDateTime createdAt;
+    private LocalDateTime lastLoginAt;
 
     public Long getId() {
         return id;
@@ -41,6 +43,14 @@ public class MemberPersistenceModel {
         this.name = name;
     }
 
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -48,5 +58,12 @@ public class MemberPersistenceModel {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
-}
 
+    public LocalDateTime getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
+    }
+}

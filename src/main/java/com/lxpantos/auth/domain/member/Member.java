@@ -7,10 +7,17 @@ public record Member(
         String email,
         String passwordHash,
         String name,
-        LocalDateTime createdAt
+        String phoneNumber,
+        LocalDateTime createdAt,
+        LocalDateTime lastLoginAt
 ) {
-    public static Member newMember(String email, String passwordHash, String name, LocalDateTime createdAt) {
-        return new Member(null, email, passwordHash, name, createdAt);
+    public static Member newMember(
+            String email,
+            String passwordHash,
+            String name,
+            String phoneNumber,
+            LocalDateTime createdAt
+    ) {
+        return new Member(null, email, passwordHash, name, phoneNumber, createdAt, null);
     }
 }
-

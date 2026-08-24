@@ -3,7 +3,7 @@ spring:
     name: session-auth
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${DB_URL:jdbc:mysql://localhost:3306/lx_auth?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/lx_auth?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&connectionTimeZone=Asia/Seoul&forceConnectionTimeZoneToSession=true}
     username: ${DB_USERNAME:lx_app}
     password: ${DB_PASSWORD:lx_app_password}
     hikari:
@@ -14,6 +14,7 @@ spring:
     init:
       mode: always
       encoding: UTF-8
+      data-locations: optional:classpath:db/seed/member-seed-${SEED_DEMO_MEMBERS:true}.sql
   thymeleaf:
     cache: ${THYMELEAF_CACHE:true}
 

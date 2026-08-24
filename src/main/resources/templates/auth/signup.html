@@ -41,6 +41,17 @@
                     </div>
                 </div>
 
+                <div class="field-group">
+                    <label for="phoneNumber">휴대폰 번호</label>
+                    <div class="input-wrap" th:classappend="${#fields.hasErrors('phoneNumber')} ? 'is-invalid'">
+                        <input id="phoneNumber" type="tel" th:field="*{phoneNumber}" inputmode="numeric"
+                               autocomplete="tel" maxlength="13" placeholder="010-1234-5678"
+                               aria-describedby="phone-number-error">
+                    </div>
+                    <p id="phone-number-error" class="field-error" th:if="${#fields.hasErrors('phoneNumber')}"
+                       th:errors="*{phoneNumber}">휴대폰 번호를 확인해 주세요.</p>
+                </div>
+
                 <div class="field-row">
                     <div class="field-group">
                         <label for="password">비밀번호</label>
@@ -85,5 +96,6 @@
         <p class="auth-footer">© BSG Partners</p>
     </section>
 </main>
+<script th:src="@{/js/signup.js}" src="/js/signup.js"></script>
 </body>
 </html>

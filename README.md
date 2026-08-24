@@ -50,7 +50,8 @@ com.lxpantos.auth
    .\mvnw.cmd spring-boot:run
    ```
 
-4. `http://localhost:8080/signup`에서 가입 후 로그인합니다.
+4. `http://localhost:8080/signup`에서 가입 후 로그인합니다. 로그인 성공 후 `/members` 회원관리
+   화면으로 이동합니다.
 
 ## 인증 및 세션 정책
 
@@ -65,6 +66,18 @@ com.lxpantos.auth
 ## DB
 
 앱 시작 시 [`schema.sql`](src/main/resources/schema.sql)이 실행됩니다.
+
+- 휴대폰 번호는 하이픈을 제거해 저장하고 회원관리 API에서는 `010-****-1234`로 마스킹합니다.
+- 가입일시와 마지막 로그인 일시는 `Asia/Seoul` 기준으로 저장합니다.
+
+### 초기 회원 데이터
+
+[`member-seed-true.sql`](src/main/resources/db/seed/member-seed-true.sql)은 애플리케이션 초기화 시
+`member001@bsg-demo.local`부터 `member100@bsg-demo.local`까지 회원 100명을 중복 없이 추가합니다.
+초기 회원은 원문을 보관하지 않은 무작위 BCrypt 해시를 사용하므로 로그인용 계정이 아니라
+회원관리 화면 조회용 데이터입니다.
+
+운영 환경에서는 `SEED_DEMO_MEMBERS=false`로 설정해 초기 회원 생성을 비활성화합니다.
 
 ### DB 연결 정보
 

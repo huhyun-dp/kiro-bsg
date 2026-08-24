@@ -1,5 +1,4 @@
 package com.lxpantos.auth.application.port.in;
 
-public record RegisterMemberCommand(String email, String password, String name) {
+public record RegisterMemberCommand(String email, String password, String name, String phoneNumber) {
 }
-

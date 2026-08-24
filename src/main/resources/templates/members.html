@@ -10,7 +10,7 @@
 </head>
 <body class="member-page">
 <header class="site-header">
-    <a class="brand" th:href="@{/dashboard}" href="/dashboard" aria-label="BSG Partners 홈">BSG Partners</a>
+    <a class="brand" th:href="@{/members}" href="/members" aria-label="BSG Partners 회원 관리 홈">BSG Partners</a>
     <nav class="member-nav" aria-label="회원 메뉴">
         <div class="member-chip">
             <span class="member-avatar" th:text="${#strings.substring(member.name(), 0, 1)}">사</span>
@@ -40,7 +40,7 @@
         <section class="member-search-card" aria-label="회원 검색">
             <form id="memberSearchForm" class="member-search-form">
                 <label for="memberKeyword">검색</label>
-                <input id="memberKeyword" type="search" placeholder="이름 또는 이메일을 입력하세요">
+                <input id="memberKeyword" type="search" placeholder="이름, 이메일 또는 휴대폰 번호를 입력하세요">
                 <button type="submit">조회</button>
             </form>
         </section>

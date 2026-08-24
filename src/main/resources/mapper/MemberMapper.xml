@@ -10,7 +10,9 @@
         <result property="email" column="email"/>
         <result property="passwordHash" column="password_hash"/>
         <result property="name" column="name"/>
+        <result property="phoneNumber" column="phone_number"/>
         <result property="createdAt" column="created_at"/>
+        <result property="lastLoginAt" column="last_login_at"/>
     </resultMap>
 
     <select id="countByEmail" resultType="int">
@@ -20,7 +22,7 @@
     </select>
 
     <select id="findByEmail" resultMap="memberResultMap">
-        SELECT id, email, password_hash, name, created_at
+        SELECT id, email, password_hash, name, phone_number, created_at, last_login_at
         FROM members
         WHERE email = #{email}
         LIMIT 1
@@ -30,7 +32,13 @@
             parameterType="com.lxpantos.auth.adapter.out.persistence.mybatis.MemberPersistenceModel"
             useGeneratedKeys="true"
             keyProperty="id">
-        INSERT INTO members (email, password_hash, name, created_at)
-        VALUES (#{email}, #{passwordHash}, #{name}, #{createdAt})
+        INSERT INTO members (email, password_hash, name, phone_number, created_at)
+        VALUES (#{email}, #{passwordHash}, #{name}, #{phoneNumber}, #{createdAt})
     </insert>
+
+    <update id="updateLastLoginAt">
+        UPDATE members
+        SET last_login_at = #{lastLoginAt}
+        WHERE id = #{memberId}
+    </update>
 </mapper>

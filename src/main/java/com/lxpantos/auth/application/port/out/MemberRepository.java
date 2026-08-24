@@ -2,6 +2,7 @@ package com.lxpantos.auth.application.port.out;
 
 import com.lxpantos.auth.domain.member.Member;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface MemberRepository {
@@ -10,5 +11,6 @@ public interface MemberRepository {
     Optional<Member> findByEmail(String email);
 
     Member save(Member member);
-}
 
+    void updateLastLoginAt(Long memberId, LocalDateTime lastLoginAt);
+}

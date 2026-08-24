@@ -21,15 +21,19 @@
     const grid = new tui.Grid({
         el: document.getElementById('memberGrid'),
         data: [],
+        width: 'auto',
         bodyHeight: 400,
         rowHeight: 48,
-        scrollX: false,
+        scrollX: true,
+        scrollY: true,
         header: {height: 48},
         columns: [
-            {header: '번호', name: 'id', width: 90, align: 'center'},
-            {header: '이름', name: 'name', minWidth: 160, align: 'center'},
-            {header: '이메일', name: 'email', minWidth: 260, align: 'center'},
-            {header: '가입일', name: 'createdAt', width: 140, align: 'center'}
+            {header: '번호', name: 'id', width: 80, align: 'center'},
+            {header: '이름', name: 'name', minWidth: 130, align: 'center'},
+            {header: '이메일', name: 'email', minWidth: 220, align: 'center'},
+            {header: '휴대폰 번호', name: 'phoneNumber', minWidth: 160, align: 'center'},
+            {header: '가입일시', name: 'createdAt', minWidth: 170, align: 'center'},
+            {header: '마지막 로그인 일시', name: 'lastLoginAt', minWidth: 190, align: 'center'}
         ]
     });
 
@@ -64,7 +68,9 @@
                     id: row.id,
                     name: row.name,
                     email: row.email,
-                    createdAt: row.createdAt ? row.createdAt.slice(0, 10) : ''
+                    phoneNumber: row.maskedPhoneNumber,
+                    createdAt: formatDateTime(row.createdAt),
+                    lastLoginAt: formatDateTime(row.lastLoginAt)
                 };
             }));
         }).catch(function () {
@@ -72,9 +78,17 @@
         });
     }
 
+    function formatDateTime(value) {
+        return value ? value.replace('T', ' ').slice(0, 19) : '-';
+    }
+
     document.getElementById('memberSearchForm').addEventListener('submit', function (event) {
         event.preventDefault();
         load(document.getElementById('memberKeyword').value.trim());
+    });
+
+    window.addEventListener('resize', function () {
+        grid.refreshLayout();
     });
 
     load('');

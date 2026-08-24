@@ -57,8 +57,7 @@ a {
 }
 
 .auth-panel,
-.error-card,
-.account-card {
+.error-card {
     border: 1px solid var(--line);
     border-radius: 12px;
     background: var(--surface);
@@ -83,7 +82,6 @@ a {
 }
 
 .auth-content h1,
-.account-card h1,
 .error-card h1 {
     margin: 0;
     font-size: 28px;
@@ -284,10 +282,6 @@ a:focus-visible {
     font-size: 11px;
 }
 
-.dashboard-page {
-    background: var(--background);
-}
-
 .member-page {
     background: var(--background);
 }
@@ -436,7 +430,7 @@ a:focus-visible {
     justify-content: space-between;
     border-bottom: 1px solid var(--line);
     background: #fff;
-    padding: 0 max(24px, calc((100% - 960px) / 2));
+    padding: 0 32px;
 }
 
 .member-nav,
@@ -494,43 +488,6 @@ a:focus-visible {
     background: var(--background);
 }
 
-.dashboard-main {
-    width: min(100% - 40px, 960px);
-    margin: 0 auto;
-    padding: 64px 0;
-}
-
-.account-card {
-    padding: 36px;
-}
-
-.account-card h1 span {
-    color: var(--brand);
-}
-
-.account-info {
-    margin: 32px 0 0;
-    border-top: 1px solid var(--line);
-}
-
-.account-info > div {
-    display: grid;
-    grid-template-columns: 100px 1fr;
-    border-bottom: 1px solid var(--line);
-    padding: 18px 0;
-}
-
-.account-info dt {
-    color: var(--muted);
-    font-size: 13px;
-}
-
-.account-info dd {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-}
-
 .error-card {
     width: min(100%, 480px);
     padding: 36px;
@@ -578,11 +535,6 @@ a:focus-visible {
         padding: 0 20px;
     }
 
-    .dashboard-main {
-        width: min(100% - 32px, 960px);
-        padding: 36px 0;
-    }
-
     .member-layout {
         grid-template-columns: 1fr;
     }
@@ -611,9 +563,6 @@ a:focus-visible {
         margin-bottom: -4px;
     }
 
-    .account-card {
-        padding: 24px;
-    }
 }
 
 @media (prefers-reduced-motion: reduce) {

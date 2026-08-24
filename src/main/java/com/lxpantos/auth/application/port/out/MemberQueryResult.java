@@ -1,12 +1,12 @@
-package com.lxpantos.auth.application.port.in;
+package com.lxpantos.auth.application.port.out;
 
 import java.time.LocalDateTime;
 
-public record MemberSummary(
+public record MemberQueryResult(
         Long id,
         String name,
         String email,
-        String maskedPhoneNumber,
+        String phoneNumber,
         LocalDateTime createdAt,
         LocalDateTime lastLoginAt
 ) {

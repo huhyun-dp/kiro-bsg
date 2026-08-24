@@ -37,7 +37,7 @@ public class AuthController {
     @GetMapping("/login")
     public String loginForm(HttpServletRequest request, Model model) {
         if (isAuthenticated(request)) {
-            return "redirect:/dashboard";
+            return "redirect:/members";
         }
         if (!model.containsAttribute("loginForm")) {
             model.addAttribute("loginForm", new LoginForm());
@@ -66,7 +66,7 @@ public class AuthController {
                     SessionKeys.AUTHENTICATED_MEMBER,
                     new SessionMember(member.id(), member.email(), member.name())
             );
-            return "redirect:/dashboard";
+            return "redirect:/members";
         } catch (InvalidCredentialsException exception) {
             bindingResult.reject("login.failed", exception.getMessage());
             return "auth/login";
@@ -76,7 +76,7 @@ public class AuthController {
     @GetMapping("/signup")
     public String signUpForm(HttpServletRequest request, Model model) {
         if (isAuthenticated(request)) {
-            return "redirect:/dashboard";
+            return "redirect:/members";
         }
         if (!model.containsAttribute("signUpForm")) {
             model.addAttribute("signUpForm", new SignUpForm());
@@ -101,7 +101,8 @@ public class AuthController {
             registerMemberUseCase.register(new RegisterMemberCommand(
                     signUpForm.getEmail(),
                     signUpForm.getPassword(),
-                    signUpForm.getName()
+                    signUpForm.getName(),
+                    signUpForm.getPhoneNumber()
             ));
         } catch (DuplicateEmailException exception) {
             bindingResult.rejectValue("email", "email.duplicate", exception.getMessage());
@@ -127,4 +128,3 @@ public class AuthController {
         return session != null && session.getAttribute(SessionKeys.AUTHENTICATED_MEMBER) != null;
     }
 }
-

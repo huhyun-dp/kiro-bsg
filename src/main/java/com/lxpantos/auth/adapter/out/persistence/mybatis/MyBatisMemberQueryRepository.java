@@ -1,7 +1,7 @@
 package com.lxpantos.auth.adapter.out.persistence.mybatis;
 
-import com.lxpantos.auth.application.port.in.MemberSummary;
 import com.lxpantos.auth.application.port.out.MemberQueryRepository;
+import com.lxpantos.auth.application.port.out.MemberQueryResult;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,7 +16,7 @@ public class MyBatisMemberQueryRepository implements MemberQueryRepository {
     }
 
     @Override
-    public List<MemberSummary> search(String keyword) {
+    public List<MemberQueryResult> search(String keyword) {
         return memberQueryMapper.search(toLikePattern(keyword));
     }
 

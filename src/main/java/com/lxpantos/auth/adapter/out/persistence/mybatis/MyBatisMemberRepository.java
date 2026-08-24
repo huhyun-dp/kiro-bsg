@@ -6,6 +6,7 @@ import com.lxpantos.auth.domain.member.Member;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
@@ -38,13 +39,20 @@ public class MyBatisMemberRepository implements MemberRepository {
         return toDomain(model);
     }
 
+    @Override
+    public void updateLastLoginAt(Long memberId, LocalDateTime lastLoginAt) {
+        memberMapper.updateLastLoginAt(memberId, lastLoginAt);
+    }
+
     private Member toDomain(MemberPersistenceModel model) {
         return new Member(
                 model.getId(),
                 model.getEmail(),
                 model.getPasswordHash(),
                 model.getName(),
-                model.getCreatedAt()
+                model.getPhoneNumber(),
+                model.getCreatedAt(),
+                model.getLastLoginAt()
         );
     }
 
@@ -54,8 +62,9 @@ public class MyBatisMemberRepository implements MemberRepository {
         model.setEmail(member.email());
         model.setPasswordHash(member.passwordHash());
         model.setName(member.name());
+        model.setPhoneNumber(member.phoneNumber());
         model.setCreatedAt(member.createdAt());
+        model.setLastLoginAt(member.lastLoginAt());
         return model;
     }
 }
-
