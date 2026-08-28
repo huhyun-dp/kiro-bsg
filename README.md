@@ -11,6 +11,14 @@
 - 가입일시·최근 로그인 일시의 `Asia/Seoul` 기준 처리
 - 조회 화면 확인용 데모 회원 100명 멱등성 보장하며 초기화 진행
 
+## 주요 화면
+
+| 로그인 | 회원가입 |
+| --- | --- |
+| ![로그인 화면](.kiro/specs/as-is-system-analysis/screenshots/01-login.png) | ![회원가입 화면](.kiro/specs/as-is-system-analysis/screenshots/02-signup.png) |
+
+![회원관리 화면](.kiro/specs/as-is-system-analysis/screenshots/05-members.png)
+
 ## 기술 스택
 
 | 구분 | 기술 |
@@ -175,6 +183,18 @@ docker compose down
 
 ## Kiro 프로젝트 파일
 
-- [`.kiro/steering/`](.kiro/steering): 제품, 기술, 구조, UI와 유지보수 정책
-- [`.kiro/specs/member-management-pilot/`](.kiro/specs/member-management-pilot): 회원관리 프로젝트 요구사항, 설계와 작업 목록
-- [`.kiro/hooks/test-after-source-change.json`](.kiro/hooks/test-after-source-change.json): 소스 변경 후 전체 Maven 테스트 실행
+Kiro가 프로젝트의 목적과 구현 원칙을 일관되게 이해하고, 현재 시스템을 PI/PO 업무
+인수인계 자료로 활용할 수 있도록 다음 문서를 관리합니다.
+
+### Steering
+
+- [`product.md`](.kiro/steering/product.md): 제품 목적, 핵심 기능, 사용자 흐름과 비즈니스 규칙
+- [`structure.md`](.kiro/steering/structure.md): 헥사고날 아키텍처, 패키지·리소스 구조와 의존성 규칙
+- [`tech.md`](.kiro/steering/tech.md): 기술 스택, 데이터베이스, 환경변수와 코드 컨벤션
+
+### AS-IS 시스템 분석 Spec
+
+- [`requirements.md`](.kiro/specs/as-is-system-analysis/requirements.md): 현재 구현 기준 요구사항과 확인 필요 항목
+- [`design.md`](.kiro/specs/as-is-system-analysis/design.md): 업무 흐름, 아키텍처, 화면과 데이터 모델
+- [`tasks.md`](.kiro/specs/as-is-system-analysis/tasks.md): PI/PO 확인·문서 보완·미검증 기능·개선 후보 체크리스트
+- [`screenshots/`](.kiro/specs/as-is-system-analysis/screenshots): 로그인, 회원가입, 회원 조회와 접근 제어 화면 캡처
