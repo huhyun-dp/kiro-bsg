@@ -7,3 +7,8 @@ target/
 .env
 .DS_Store
 DEVELOPER_MANUAL.md
+
+# Local Playwright tooling (not required by the Spring Boot application)
+/node_modules/
+/package.json
+/package-lock.json
