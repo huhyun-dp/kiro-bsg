@@ -23,6 +23,6 @@
                OR LOWER(email) LIKE #{keywordPattern} ESCAPE '!'
                OR phone_number LIKE REPLACE(#{keywordPattern}, '-', '') ESCAPE '!'
         </if>
-        ORDER BY id ASC
+        ORDER BY last_login_at DESC, id ASC
     </select>
 </mapper>
