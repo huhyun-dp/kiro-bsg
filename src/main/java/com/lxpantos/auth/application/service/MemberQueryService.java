@@ -27,11 +27,24 @@ public class MemberQueryService implements MemberQueryUseCase {
         return new MemberSummary(
                 result.id(),
                 result.name(),
-                result.email(),
+                maskEmail(result.email()),
                 maskPhoneNumber(result.phoneNumber()),
                 result.createdAt(),
                 result.lastLoginAt()
         );
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return "";
+        }
+        int atIndex = email.indexOf('@');
+        if (atIndex <= 1) {
+            // '@' 가 없거나 첫 글자 바로 다음에 오는 경우 — 로컬 파트가 마스킹할 길이 없음
+            return email;
+        }
+        String masked = "*".repeat(atIndex - 1);
+        return email.charAt(0) + masked + email.substring(atIndex);
     }
 
     private String maskPhoneNumber(String phoneNumber) {
