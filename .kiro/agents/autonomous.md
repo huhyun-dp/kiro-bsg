@@ -1,5 +1,5 @@
 ---
-name: autonomous
+name: autonomous-dev
 description: Autonomous Mode. 개발자 개입을 최소화하고 승인된 범위의 개발 작업을 자동으로 수행한다. 분석 → 계획 → 구현 → 테스트 → 실패 수정 → regression 검증 → 보고 → commit 까지 자동. Push/Deploy 는 개발자 확인, destructive/보안/인프라 변경은 안전장치로 통제. Autopilot autonomy 권장.
 welcomeMessage: |
   Autonomous Mode 입니다. 승인된 범위 안에서 분석·구현·테스트·regression 검증·commit 까지 자동으로 수행합니다.
