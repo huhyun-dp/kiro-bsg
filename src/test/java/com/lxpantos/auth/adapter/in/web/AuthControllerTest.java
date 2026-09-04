@@ -4,6 +4,7 @@ import com.lxpantos.auth.adapter.in.web.form.LoginForm;
 import com.lxpantos.auth.application.port.in.AuthenticatedMember;
 import com.lxpantos.auth.application.port.in.LoginUseCase;
 import com.lxpantos.auth.application.port.in.RegisterMemberUseCase;
+import com.lxpantos.auth.domain.member.MemberRole;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -15,7 +16,7 @@ class AuthControllerTest {
     @Test
     void redirectsToMemberManagementAfterSuccessfulLogin() {
         RegisterMemberUseCase registerMemberUseCase = command -> 1L;
-        LoginUseCase loginUseCase = command -> new AuthenticatedMember(1L, command.email(), "홍길동");
+        LoginUseCase loginUseCase = command -> new AuthenticatedMember(1L, command.email(), "홍길동", MemberRole.VIEWER);
         AuthController controller = new AuthController(registerMemberUseCase, loginUseCase);
         LoginForm form = new LoginForm();
         form.setEmail("user@example.com");

@@ -6,6 +6,8 @@ import com.lxpantos.auth.application.port.in.RegisterMemberCommand;
 import com.lxpantos.auth.application.port.out.MemberRepository;
 import com.lxpantos.auth.application.port.out.PasswordHasher;
 import com.lxpantos.auth.domain.member.Member;
+import com.lxpantos.auth.domain.member.MemberRole;
+import com.lxpantos.auth.domain.member.MemberStatus;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -68,6 +70,10 @@ class AuthenticationServiceTest {
                 "홍길동",
                 "01012345678",
                 LocalDateTime.of(2026, 8, 20, 9, 0),
+                null,
+                MemberRole.VIEWER,
+                MemberStatus.ACTIVE,
+                0L,
                 null
         );
         AuthenticationService service = new AuthenticationService(repository, new StubPasswordHasher(), FIXED_CLOCK);
@@ -77,6 +83,41 @@ class AuthenticationServiceTest {
         assertThat(authenticated.id()).isEqualTo(7L);
         assertThat(repository.updatedMemberId).isEqualTo(7L);
         assertThat(repository.lastLoginAt).isEqualTo(LocalDateTime.of(2026, 8, 24, 10, 2, 3));
+    }
+
+    @Test
+    void rejectsLoginForSuspendedMember() {
+        InMemoryMemberRepository repository = new InMemoryMemberRepository();
+        repository.member = new Member(
+                7L,
+                "user@example.com",
+                "hashed-password",
+                "홍길동",
+                "01012345678",
+                LocalDateTime.of(2026, 8, 20, 9, 0),
+                null,
+                MemberRole.VIEWER,
+                MemberStatus.SUSPENDED,
+                0L,
+                null
+        );
+        AuthenticationService service = new AuthenticationService(repository, new StubPasswordHasher(), FIXED_CLOCK);
+
+        assertThatThrownBy(() -> service.login(new LoginCommand("user@example.com", "password1")))
+                .isInstanceOf(com.lxpantos.auth.application.exception.SuspendedMemberException.class);
+        assertThat(repository.updatedMemberId).isNull();
+    }
+
+    @Test
+    void newMemberDefaultsToViewerAndActive() {
+        Member created = Member.newMember(
+                "user@example.com", "hash", "홍길동", "01012345678",
+                LocalDateTime.of(2026, 8, 24, 10, 0));
+
+        assertThat(created.role()).isEqualTo(MemberRole.VIEWER);
+        assertThat(created.status()).isEqualTo(MemberStatus.ACTIVE);
+        assertThat(created.version()).isZero();
+        assertThat(created.roleUpdatedAt()).isNull();
     }
 
     private static class InMemoryMemberRepository implements MemberRepository {
@@ -103,7 +144,11 @@ class AuthenticationServiceTest {
                     newMember.name(),
                     newMember.phoneNumber(),
                     newMember.createdAt(),
-                    newMember.lastLoginAt()
+                    newMember.lastLoginAt(),
+                    newMember.role(),
+                    newMember.status(),
+                    newMember.version(),
+                    newMember.roleUpdatedAt()
             );
             return member;
         }

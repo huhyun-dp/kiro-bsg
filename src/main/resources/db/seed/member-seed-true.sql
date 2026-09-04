@@ -401,3 +401,10 @@ INSERT INTO members (email, password_hash, name, phone_number, created_at, last_
 SELECT 'member100@bsg-demo.local', '$2a$12$xbEInUGLUCGzWBexO07sJ.yIjcax/fY0JNJRzra7aiJ0bt27M2H7S', '테스트회원100', '01090000100', CURRENT_TIMESTAMP(6), NULL
 WHERE NOT EXISTS (SELECT 1 FROM members WHERE email = 'member100@bsg-demo.local');
 
+-- 데모용 역할 지정: 권한 관리 화면을 즉시 사용할 수 있도록 데모 회원 일부에 역할을 부여합니다.
+-- 운영 환경에서는 SEED_DEMO_MEMBERS=false 로 비활성화하고, BOOTSTRAP_ADMIN_EMAIL 로 초기 관리자를 지정합니다.
+UPDATE members SET role = 'ADMIN'
+WHERE email = 'member001@bsg-demo.local' AND role <> 'ADMIN';
+
+UPDATE members SET role = 'OPERATOR'
+WHERE email = 'member002@bsg-demo.local' AND role <> 'OPERATOR';

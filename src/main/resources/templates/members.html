@@ -9,26 +9,10 @@
     <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
 </head>
 <body class="member-page">
-<header class="site-header">
-    <a class="brand" th:href="@{/members}" href="/members" aria-label="BSG Partners 회원 관리 홈">BSG Partners</a>
-    <nav class="member-nav" aria-label="회원 메뉴">
-        <div class="member-chip">
-            <span class="member-avatar" th:text="${#strings.substring(member.name(), 0, 1)}">사</span>
-            <span><b th:text="${member.name()}">사용자</b><small th:text="${member.email()}">name@company.com</small></span>
-        </div>
-        <form th:action="@{/logout}" method="post">
-            <input type="hidden" name="_csrf" th:value="${_csrf}">
-            <button class="logout-button" type="submit">로그아웃</button>
-        </form>
-    </nav>
-</header>
+<header th:replace="~{fragments/layout :: header('/members')}"></header>
 
 <div class="member-layout">
-    <aside class="member-sidebar">
-        <nav class="member-menu" aria-label="주 메뉴">
-            <a class="member-menu-link is-active" th:href="@{/members}" href="/members">회원 관리</a>
-        </nav>
-    </aside>
+    <aside th:replace="~{fragments/layout :: sidebar('members')}"></aside>
 
     <main class="member-main">
         <section class="member-page-header">

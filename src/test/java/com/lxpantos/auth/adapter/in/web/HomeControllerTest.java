@@ -2,6 +2,7 @@ package com.lxpantos.auth.adapter.in.web;
 
 import com.lxpantos.auth.adapter.in.web.session.SessionKeys;
 import com.lxpantos.auth.adapter.in.web.session.SessionMember;
+import com.lxpantos.auth.domain.member.MemberRole;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -16,7 +17,7 @@ class HomeControllerTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.getSession().setAttribute(
                 SessionKeys.AUTHENTICATED_MEMBER,
-                new SessionMember(1L, "user@example.com", "홍길동")
+                new SessionMember(1L, "user@example.com", "홍길동", MemberRole.VIEWER)
         );
 
         assertThat(controller.home(request)).isEqualTo("redirect:/members");

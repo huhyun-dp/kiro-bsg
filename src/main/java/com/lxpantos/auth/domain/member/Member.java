@@ -9,7 +9,11 @@ public record Member(
         String name,
         String phoneNumber,
         LocalDateTime createdAt,
-        LocalDateTime lastLoginAt
+        LocalDateTime lastLoginAt,
+        MemberRole role,
+        MemberStatus status,
+        long version,
+        LocalDateTime roleUpdatedAt
 ) {
     public static Member newMember(
             String email,
@@ -18,6 +22,18 @@ public record Member(
             String phoneNumber,
             LocalDateTime createdAt
     ) {
-        return new Member(null, email, passwordHash, name, phoneNumber, createdAt, null);
+        return new Member(
+                null,
+                email,
+                passwordHash,
+                name,
+                phoneNumber,
+                createdAt,
+                null,
+                MemberRole.VIEWER,
+                MemberStatus.ACTIVE,
+                0L,
+                null
+        );
     }
 }

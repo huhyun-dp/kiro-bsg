@@ -3,6 +3,8 @@ package com.lxpantos.auth.adapter.out.persistence.mybatis;
 import com.lxpantos.auth.application.exception.DuplicateEmailException;
 import com.lxpantos.auth.application.port.out.MemberRepository;
 import com.lxpantos.auth.domain.member.Member;
+import com.lxpantos.auth.domain.member.MemberRole;
+import com.lxpantos.auth.domain.member.MemberStatus;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
@@ -52,7 +54,11 @@ public class MyBatisMemberRepository implements MemberRepository {
                 model.getName(),
                 model.getPhoneNumber(),
                 model.getCreatedAt(),
-                model.getLastLoginAt()
+                model.getLastLoginAt(),
+                model.getRole() == null ? MemberRole.VIEWER : MemberRole.valueOf(model.getRole()),
+                model.getStatus() == null ? MemberStatus.ACTIVE : MemberStatus.valueOf(model.getStatus()),
+                model.getVersion(),
+                model.getRoleUpdatedAt()
         );
     }
 

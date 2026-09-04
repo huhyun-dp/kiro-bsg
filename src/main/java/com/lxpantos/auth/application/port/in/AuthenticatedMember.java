@@ -1,5 +1,6 @@
 package com.lxpantos.auth.application.port.in;
 
-public record AuthenticatedMember(Long id, String email, String name) {
-}
+import com.lxpantos.auth.domain.member.MemberRole;
 
+public record AuthenticatedMember(Long id, String email, String name, MemberRole role) {
+}
