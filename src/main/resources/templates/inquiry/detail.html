@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BSG Partners 문의 상세">
+    <title th:text="${inquiry.title} + ' | BSG Partners'">문의 상세 | BSG Partners</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+</head>
+<body class="member-page">
+<header class="site-header">
+    <a class="brand" th:href="@{/members}" href="/members" aria-label="BSG Partners 홈">BSG Partners</a>
+    <nav class="member-nav" aria-label="회원 메뉴">
+        <div class="member-chip">
+            <span class="member-avatar" th:text="${#strings.substring(member.name(), 0, 1)}">사</span>
+            <span><b th:text="${member.name()}">사용자</b><small th:text="${member.email()}">name@company.com</small></span>
+        </div>
+        <form th:action="@{/logout}" method="post">
+            <input type="hidden" name="_csrf" th:value="${_csrf}">
+            <button class="logout-button" type="submit">로그아웃</button>
+        </form>
+    </nav>
+</header>
+
+<div class="member-layout">
+    <aside class="member-sidebar">
+        <nav class="member-menu" aria-label="주 메뉴">
+            <a class="member-menu-link" th:href="@{/members}" href="/members">회원 관리</a>
+            <a class="member-menu-link is-active" th:href="@{/inquiries}" href="/inquiries">문의 요청</a>
+        </nav>
+    </aside>
+
+    <main class="member-main">
+        <section class="member-page-header">
+            <p class="member-eyebrow">INQUIRY</p>
+            <h1>문의 상세</h1>
+        </section>
+
+        <article class="inquiry-detail-card" aria-label="문의 상세 내용">
+            <header class="inquiry-detail-header">
+                <h2 class="inquiry-detail-title" th:text="${inquiry.title}">제목</h2>
+                <dl class="inquiry-detail-meta">
+                    <div>
+                        <dt>작성자</dt>
+                        <dd th:text="${inquiry.authorName}">홍길동</dd>
+                    </div>
+                    <div>
+                        <dt>작성일</dt>
+                        <dd th:text="${#temporals.format(inquiry.createdAt, 'yyyy-MM-dd HH:mm')}">2024-01-01 12:00</dd>
+                    </div>
+                    <div>
+                        <dt>조회수</dt>
+                        <dd th:text="${inquiry.viewCount}">0</dd>
+                    </div>
+                </dl>
+            </header>
+            <div class="inquiry-detail-content" th:text="${inquiry.content}">내용</div>
+        </article>
+
+        <div class="inquiry-detail-actions">
+            <a class="inquiry-back-button" th:href="@{/inquiries}" href="/inquiries">목록으로</a>
+        </div>
+    </main>
+</div>
+</body>
+</html>

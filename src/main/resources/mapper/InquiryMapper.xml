@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lxpantos.auth.adapter.out.persistence.mybatis.InquiryMapper">
+
+    <resultMap id="inquiryQueryResultMap" type="com.lxpantos.auth.application.port.out.InquiryQueryResult">
+        <constructor>
+            <idArg column="id"          javaType="java.lang.Long"/>
+            <arg   column="author_name" javaType="java.lang.String"/>
+            <arg   column="title"       javaType="java.lang.String"/>
+            <arg   column="content"     javaType="java.lang.String"/>
+            <arg   column="view_count"  javaType="java.lang.Long"/>
+            <arg   column="created_at"  javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.lxpantos.auth.adapter.out.persistence.mybatis.InquiryPersistenceModel">
+        INSERT INTO inquiries (member_id, title, content, view_count, created_at)
+        VALUES (#{memberId}, #{title}, #{content}, #{viewCount}, #{createdAt})
+    </insert>
+
+    <update id="incrementViewCount">
+        UPDATE inquiries SET view_count = view_count + 1 WHERE id = #{id}
+    </update>
+
+    <select id="findById" resultMap="inquiryQueryResultMap">
+        SELECT i.id, m.name AS author_name, i.title, i.content, i.view_count, i.created_at
+        FROM inquiries i
+        JOIN members m ON m.id = i.member_id
+        WHERE i.id = #{id}
+    </select>
+
+</mapper>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BSG Partners 문의 요청">
+    <title>문의 요청 | BSG Partners</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+</head>
+<body class="member-page">
+<header class="site-header">
+    <a class="brand" th:href="@{/members}" href="/members" aria-label="BSG Partners 홈">BSG Partners</a>
+    <nav class="member-nav" aria-label="회원 메뉴">
+        <div class="member-chip">
+            <span class="member-avatar" th:text="${#strings.substring(member.name(), 0, 1)}">사</span>
+            <span><b th:text="${member.name()}">사용자</b><small th:text="${member.email()}">name@company.com</small></span>
+        </div>
+        <form th:action="@{/logout}" method="post">
+            <input type="hidden" name="_csrf" th:value="${_csrf}">
+            <button class="logout-button" type="submit">로그아웃</button>
+        </form>
+    </nav>
+</header>
+
+<div class="member-layout">
+    <aside class="member-sidebar">
+        <nav class="member-menu" aria-label="주 메뉴">
+            <a class="member-menu-link" th:href="@{/members}" href="/members">회원 관리</a>
+            <a class="member-menu-link is-active" th:href="@{/inquiries}" href="/inquiries">문의 요청</a>
+        </nav>
+    </aside>
+
+    <main class="member-main">
+        <section class="member-page-header">
+            <p class="member-eyebrow">INQUIRY</p>
+            <h1>문의 요청</h1>
+            <p>등록된 문의 목록을 확인합니다.</p>
+        </section>
+
+        <section class="inquiry-list-card" aria-label="문의 목록">
+            <div class="inquiry-list-heading">
+                <h2>문의 목록 <span class="inquiry-total" th:text="'총 ' + ${inquiryPage.totalCount} + '건'">총 0건</span></h2>
+                <a class="primary-button inquiry-write-button" th:href="@{/inquiries/new}" href="/inquiries/new">문의 작성</a>
+            </div>
+
+            <table class="inquiry-table" aria-label="문의 목록 테이블">
+                <thead>
+                <tr>
+                    <th scope="col" class="col-no">번호</th>
+                    <th scope="col" class="col-title">제목</th>
+                    <th scope="col" class="col-view">조회수</th>
+                    <th scope="col" class="col-date">작성일</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(inquiryPage.items)}">
+                    <td colspan="4" class="inquiry-empty">등록된 문의가 없습니다.</td>
+                </tr>
+                <tr th:each="item, stat : ${inquiryPage.items}">
+                    <td class="col-no"
+                        th:text="${inquiryPage.totalCount - ((inquiryPage.currentPage - 1) * 10) - stat.index}">1</td>
+                    <td class="col-title">
+                        <a class="inquiry-title-link"
+                           th:href="@{/inquiries/{id}(id=${item.id})}"
+                           th:text="${item.title}">제목</a>
+                    </td>
+                    <td class="col-view" th:text="${item.viewCount}">0</td>
+                    <td class="col-date"
+                        th:text="${#temporals.format(item.createdAt, 'yyyy-MM-dd')}">2024-01-01</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <nav class="inquiry-pagination" aria-label="페이지 탐색" th:if="${inquiryPage.totalPages > 1}">
+                <a class="page-link"
+                   th:href="@{/inquiries(page=${inquiryPage.currentPage - 1})}"
+                   th:classappend="${!inquiryPage.hasPrevious()} ? 'is-disabled'"
+                   aria-disabled="${!inquiryPage.hasPrevious()}"
+                   aria-label="이전 페이지">&#8249;</a>
+
+                <th:block th:each="p : ${#numbers.sequence(1, inquiryPage.totalPages)}">
+                    <a class="page-link"
+                       th:href="@{/inquiries(page=${p})}"
+                       th:text="${p}"
+                       th:classappend="${p == inquiryPage.currentPage} ? 'is-current'"
+                       th:aria-current="${p == inquiryPage.currentPage} ? 'page' : null">1</a>
+                </th:block>
+
+                <a class="page-link"
+                   th:href="@{/inquiries(page=${inquiryPage.currentPage + 1})}"
+                   th:classappend="${!inquiryPage.hasNext()} ? 'is-disabled'"
+                   aria-disabled="${!inquiryPage.hasNext()}"
+                   aria-label="다음 페이지">&#8250;</a>
+            </nav>
+        </section>
+    </main>
+</div>
+</body>
+</html>
