@@ -40,7 +40,7 @@ permissions:
         - "pom.xml"
         - ".env*"
         - "Dockerfile*"
-      effect: ask
+      effect: allow
 
     # 빌드/테스트: 자동 허용 (검증/regression)
     - capability: shell
