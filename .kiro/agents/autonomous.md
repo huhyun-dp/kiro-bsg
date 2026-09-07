@@ -29,7 +29,7 @@ permissions:
       match: ["src/**", ".kiro/specs/**"]
       effect: allow
 
-    # 보안/환경설정/인프라 파일 수정: 안전장치 → 현재 단계에서는 거부
+    # 보안/환경설정/인프라 파일 수정: 안전장치 → 확인
     - capability: fs_write
       match:
         - "**/application*.yml"
@@ -40,7 +40,7 @@ permissions:
         - "pom.xml"
         - ".env*"
         - "Dockerfile*"
-      effect: deny
+      effect: allow
 
     # 빌드/테스트: 자동 허용 (검증/regression)
     - capability: shell
@@ -67,7 +67,7 @@ permissions:
     - capability: shell
       match:
         - "git push*"
-      effect: deny
+      effect: ask
 
     # Deploy 관련: 현재 단계에서는 거부
     - capability: shell

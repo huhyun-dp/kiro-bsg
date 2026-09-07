@@ -22,6 +22,7 @@
 - **MyBatis** (`mybatis-spring-boot-starter:3.0.1`) — SQL 매퍼, XML 방식
   - 매퍼 위치: `classpath:/mapper/*.xml`
   - underscore → camelCase 자동 변환 (`map-underscore-to-camel-case: true`)
+- **Liquibase** — changeSet 기반 DB 스키마 생성 및 기존 DB 마이그레이션
 - **MySQL** (`mysql-connector-j`, runtime scope) — 운영 데이터베이스
 - **H2** (테스트 전용)
 - **HikariCP** — 커넥션 풀 (max 10, min-idle 2, timeout 3초)
@@ -36,20 +37,43 @@
 
 ```sql
 CREATE TABLE IF NOT EXISTS members (
-    id            BIGINT NOT NULL AUTO_INCREMENT,
-    email         VARCHAR(255) NOT NULL,
-    password_hash VARCHAR(60) NOT NULL,   -- BCrypt 고정 60자
-    name          VARCHAR(30) NOT NULL,
-    phone_number  VARCHAR(11) NULL,       -- 숫자만 저장 (010XXXXXXXX)
-    created_at    DATETIME(6) NOT NULL,   -- 마이크로초 정밀도
-    last_login_at DATETIME(6) NULL,
+    id              BIGINT NOT NULL AUTO_INCREMENT,
+    email           VARCHAR(255) NOT NULL,
+    password_hash   VARCHAR(60) NOT NULL,   -- BCrypt 고정 60자
+    name            VARCHAR(30) NOT NULL,
+    phone_number    VARCHAR(11) NULL,       -- 숫자만 저장 (010XXXXXXXX)
+    created_at      DATETIME(6) NOT NULL,   -- 마이크로초 정밀도
+    last_login_at   DATETIME(6) NULL,
+    -- 권한 관리 컬럼(Liquibase changeSet에서 추가)
+    role            VARCHAR(20) NOT NULL DEFAULT 'VIEWER',   -- ADMIN/OPERATOR/VIEWER
+    status          VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',   -- ACTIVE/SUSPENDED
+    version         BIGINT NOT NULL DEFAULT 0,               -- 낙관적 잠금
+    role_updated_at DATETIME(6) NULL,                        -- 권한 최종 변경 일시
     PRIMARY KEY (id),
     CONSTRAINT uk_members_email UNIQUE (email)
 );
+
+-- 권한/상태 변경 감사 로그 (변경과 동일 트랜잭션에서 기록)
+CREATE TABLE IF NOT EXISTS member_access_audit_log (
+    id               BIGINT NOT NULL AUTO_INCREMENT,
+    target_member_id BIGINT NOT NULL,
+    actor_member_id  BIGINT NOT NULL,
+    before_role      VARCHAR(20) NOT NULL,
+    before_status    VARCHAR(20) NOT NULL,
+    after_role       VARCHAR(20) NOT NULL,
+    after_status     VARCHAR(20) NOT NULL,
+    reason           VARCHAR(500) NOT NULL,
+    request_ip       VARCHAR(45) NULL,
+    created_at       DATETIME(6) NOT NULL,
+    PRIMARY KEY (id)
+);
 ```
 
-- `schema.sql`은 앱 시작 시 항상 실행 (`spring.sql.init.mode: always`)
-- Seed 데이터: `SEED_DEMO_MEMBERS` 환경변수로 제어 (기본 `true`)
+- Liquibase가 `db/changelog/db.changelog-master.yaml`의 changeSet 이력을 관리
+- 기존 테이블·컬럼·인덱스는 precondition으로 감지해 유지하고 누락된 권한 관리 스키마만 적용
+- `spring.sql.init`은 Liquibase 마이그레이션 이후 환경별 데모 seed 데이터만 실행
+- Seed 데이터: `SEED_DEMO_MEMBERS` 환경변수로 제어 (기본 `true`, 데모 시 `member001`=ADMIN / `member002`=OPERATOR 로 지정)
+- 초기 관리자: `BOOTSTRAP_ADMIN_EMAIL` 로 지정한 회원을 앱 시작 시 ADMIN/ACTIVE 로 승격
 
 ## 환경변수 목록
 
@@ -61,6 +85,7 @@ CREATE TABLE IF NOT EXISTS members (
 | `DB_POOL_SIZE` | `10` | HikariCP 최대 커넥션 수 |
 | `BCRYPT_STRENGTH` | `12` | BCrypt 해싱 강도 |
 | `SEED_DEMO_MEMBERS` | `true` | 데모 멤버 시드 데이터 실행 여부 |
+| `BOOTSTRAP_ADMIN_EMAIL` | (빈 값) | 앱 시작 시 해당 이메일 회원을 ADMIN/ACTIVE 로 승격(초기 관리자) |
 | `SERVER_PORT` | `8080` | 서버 포트 |
 | `SESSION_COOKIE_SECURE` | `false` | 세션 쿠키 Secure 플래그 (HTTPS 환경에서 `true` 설정 필요) |
 | `THYMELEAF_CACHE` | `true` | Thymeleaf 캐시 활성화 여부 |

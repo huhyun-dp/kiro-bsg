@@ -6,6 +6,7 @@ import com.lxpantos.auth.adapter.in.web.session.SessionKeys;
 import com.lxpantos.auth.adapter.in.web.session.SessionMember;
 import com.lxpantos.auth.application.exception.DuplicateEmailException;
 import com.lxpantos.auth.application.exception.InvalidCredentialsException;
+import com.lxpantos.auth.application.exception.SuspendedMemberException;
 import com.lxpantos.auth.application.port.in.AuthenticatedMember;
 import com.lxpantos.auth.application.port.in.LoginCommand;
 import com.lxpantos.auth.application.port.in.LoginUseCase;
@@ -64,10 +65,10 @@ public class AuthController {
             HttpSession session = request.getSession();
             session.setAttribute(
                     SessionKeys.AUTHENTICATED_MEMBER,
-                    new SessionMember(member.id(), member.email(), member.name())
+                    new SessionMember(member.id(), member.email(), member.name(), member.role())
             );
             return "redirect:/members";
-        } catch (InvalidCredentialsException exception) {
+        } catch (InvalidCredentialsException | SuspendedMemberException exception) {
             bindingResult.reject("login.failed", exception.getMessage());
             return "auth/login";
         }

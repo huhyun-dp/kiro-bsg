@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lxpantos.auth.adapter.out.persistence.mybatis.AccessMemberMapper">
+
+    <resultMap id="memberResultMap"
+               type="com.lxpantos.auth.adapter.out.persistence.mybatis.MemberPersistenceModel">
+        <id property="id" column="id"/>
+        <result property="email" column="email"/>
+        <result property="passwordHash" column="password_hash"/>
+        <result property="name" column="name"/>
+        <result property="phoneNumber" column="phone_number"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="lastLoginAt" column="last_login_at"/>
+        <result property="role" column="role"/>
+        <result property="status" column="status"/>
+        <result property="version" column="version"/>
+        <result property="roleUpdatedAt" column="role_updated_at"/>
+    </resultMap>
+
+    <select id="findById" resultMap="memberResultMap">
+        SELECT id, email, password_hash, name, phone_number, created_at, last_login_at,
+               role, status, version, role_updated_at
+        FROM members
+        WHERE id = #{memberId}
+    </select>
+
+    <select id="findByEmail" resultMap="memberResultMap">
+        SELECT id, email, password_hash, name, phone_number, created_at, last_login_at,
+               role, status, version, role_updated_at
+        FROM members
+        WHERE email = #{email}
+        LIMIT 1
+    </select>
+
+    <update id="updateAccess">
+        UPDATE members
+        SET role = #{role},
+            status = #{status},
+            role_updated_at = #{roleUpdatedAt},
+            version = version + 1
+        WHERE id = #{memberId}
+          AND version = #{expectedVersion}
+    </update>
+
+    <update id="updateAccessKeepingLastAdmin">
+        UPDATE members
+        SET role = #{role},
+            status = #{status},
+            role_updated_at = #{roleUpdatedAt},
+            version = version + 1
+        WHERE id = #{memberId}
+          AND version = #{expectedVersion}
+          AND (
+              SELECT COUNT(*) FROM (
+                  SELECT id FROM members
+                  WHERE role = 'ADMIN' AND status = 'ACTIVE'
+              ) active_admins
+              WHERE active_admins.id &lt;&gt; #{memberId}
+          ) &gt; 0
+    </update>
+
+    <insert id="insertAuditLog"
+            parameterType="com.lxpantos.auth.adapter.out.persistence.mybatis.AuditLogPersistenceModel"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO member_access_audit_log
+            (target_member_id, actor_member_id, before_role, before_status,
+             after_role, after_status, reason, request_ip, created_at)
+        VALUES
+            (#{targetMemberId}, #{actorMemberId}, #{beforeRole}, #{beforeStatus},
+             #{afterRole}, #{afterStatus}, #{reason}, #{requestIp}, #{createdAt})
+    </insert>
+</mapper>

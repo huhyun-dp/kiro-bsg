@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>레이아웃 프래그먼트</title>
+</head>
+<body>
+
+<!-- 공통 상단 헤더. member(SessionMember), homeHref 를 사용한다. -->
+<header th:fragment="header(homeHref)" class="site-header">
+    <a class="brand" th:href="@{${homeHref}}" href="/members" aria-label="BSG Partners 홈">BSG Partners</a>
+    <nav class="member-nav" aria-label="회원 메뉴">
+        <div class="member-chip">
+            <span class="member-avatar" th:text="${#strings.substring(member.name(), 0, 1)}">사</span>
+            <span>
+                <b th:text="${member.name()}">사용자</b>
+                <small th:text="${member.email()}">name@company.com</small>
+            </span>
+        </div>
+        <form th:action="@{/logout}" method="post">
+            <input type="hidden" name="_csrf" th:value="${_csrf}">
+            <button class="logout-button" type="submit">로그아웃</button>
+        </form>
+    </nav>
+</header>
+
+<!-- 공통 사이드바. activeMenu('members'|'access') 로 활성 메뉴를 지정한다.
+     권한 관리 메뉴는 ADMIN 에게만 노출된다. -->
+<aside th:fragment="sidebar(activeMenu)" class="member-sidebar">
+    <nav class="member-menu" aria-label="주 메뉴">
+        <a class="member-menu-link"
+           th:classappend="${activeMenu == 'members'} ? ' is-active' : ''"
+           th:href="@{/members}" href="/members"
+           th:attr="aria-current=${activeMenu == 'members'} ? 'page' : null">회원 관리</a>
+        <a th:if="${member.isAdmin()}"
+           class="member-menu-link"
+           th:classappend="${activeMenu == 'access'} ? ' is-active' : ''"
+           th:href="@{/admin/access}" href="/admin/access"
+           th:attr="aria-current=${activeMenu == 'access'} ? 'page' : null">권한 관리</a>
+    </nav>
+</aside>
+
+</body>
+</html>

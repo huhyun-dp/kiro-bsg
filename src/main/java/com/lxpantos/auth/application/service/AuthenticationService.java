@@ -2,6 +2,7 @@ package com.lxpantos.auth.application.service;
 
 import com.lxpantos.auth.application.exception.DuplicateEmailException;
 import com.lxpantos.auth.application.exception.InvalidCredentialsException;
+import com.lxpantos.auth.application.exception.SuspendedMemberException;
 import com.lxpantos.auth.application.port.in.AuthenticatedMember;
 import com.lxpantos.auth.application.port.in.LoginCommand;
 import com.lxpantos.auth.application.port.in.LoginUseCase;
@@ -68,9 +69,12 @@ public class AuthenticationService implements RegisterMemberUseCase, LoginUseCas
         if (!passwordHasher.matches(command.password(), member.passwordHash())) {
             throw new InvalidCredentialsException();
         }
+        if (member.status() != null && !member.status().isActive()) {
+            throw new SuspendedMemberException();
+        }
 
         memberRepository.updateLastLoginAt(member.id(), LocalDateTime.now(clock));
-        return new AuthenticatedMember(member.id(), member.email(), member.name());
+        return new AuthenticatedMember(member.id(), member.email(), member.name(), member.role());
     }
 
     private String normalizeEmail(String email) {

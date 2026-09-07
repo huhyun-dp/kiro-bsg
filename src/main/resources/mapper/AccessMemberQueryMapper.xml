@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lxpantos.auth.adapter.out.persistence.mybatis.AccessMemberQueryMapper">
+
+    <resultMap id="accessMemberViewMap"
+               type="com.lxpantos.auth.application.port.out.AccessMemberView">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="name" javaType="java.lang.String"/>
+            <arg column="email" javaType="java.lang.String"/>
+            <arg column="phone_number" javaType="java.lang.String"/>
+            <arg column="role" javaType="com.lxpantos.auth.domain.member.MemberRole"/>
+            <arg column="status" javaType="com.lxpantos.auth.domain.member.MemberStatus"/>
+            <arg column="version" javaType="_long"/>
+            <arg column="role_updated_at" javaType="java.time.LocalDateTime"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+            <arg column="last_login_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <resultMap id="currentMemberAccessViewMap"
+               type="com.lxpantos.auth.application.port.out.CurrentMemberAccessView">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="role" javaType="com.lxpantos.auth.domain.member.MemberRole"/>
+            <arg column="status" javaType="com.lxpantos.auth.domain.member.MemberStatus"/>
+        </constructor>
+    </resultMap>
+
+    <resultMap id="auditLogViewMap"
+               type="com.lxpantos.auth.application.port.out.AuditLogView">
+        <constructor>
+            <idArg column="id" javaType="java.lang.Long"/>
+            <arg column="target_member_id" javaType="java.lang.Long"/>
+            <arg column="actor_member_id" javaType="java.lang.Long"/>
+            <arg column="actor_name" javaType="java.lang.String"/>
+            <arg column="before_role" javaType="com.lxpantos.auth.domain.member.MemberRole"/>
+            <arg column="before_status" javaType="com.lxpantos.auth.domain.member.MemberStatus"/>
+            <arg column="after_role" javaType="com.lxpantos.auth.domain.member.MemberRole"/>
+            <arg column="after_status" javaType="com.lxpantos.auth.domain.member.MemberStatus"/>
+            <arg column="reason" javaType="java.lang.String"/>
+            <arg column="request_ip" javaType="java.lang.String"/>
+            <arg column="created_at" javaType="java.time.LocalDateTime"/>
+        </constructor>
+    </resultMap>
+
+    <sql id="memberFilter">
+        <where>
+            <if test="keywordPattern != null">
+                AND (
+                    LOWER(name) LIKE #{keywordPattern} ESCAPE '!'
+                    OR LOWER(email) LIKE #{keywordPattern} ESCAPE '!'
+                    OR phone_number LIKE REPLACE(#{keywordPattern}, '-', '') ESCAPE '!'
+                )
+            </if>
+            <if test="role != null">
+                AND role = #{role}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+    </sql>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM members
+        <include refid="memberFilter"/>
+    </select>
+
+    <select id="search" resultMap="accessMemberViewMap">
+        SELECT id, name, email, phone_number, role, status, version,
+               role_updated_at, created_at, last_login_at
+        FROM members
+        <include refid="memberFilter"/>
+        ORDER BY id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findAccessById" resultMap="currentMemberAccessViewMap">
+        SELECT id, role, status
+        FROM members
+        WHERE id = #{memberId}
+    </select>
+
+    <select id="countAuditLogs" resultType="long">
+        SELECT COUNT(*)
+        FROM member_access_audit_log
+        WHERE target_member_id = #{targetMemberId}
+    </select>
+
+    <select id="searchAuditLogs" resultMap="auditLogViewMap">
+        SELECT log.id AS id,
+               log.target_member_id AS target_member_id,
+               log.actor_member_id AS actor_member_id,
+               actor.name AS actor_name,
+               log.before_role AS before_role,
+               log.before_status AS before_status,
+               log.after_role AS after_role,
+               log.after_status AS after_status,
+               log.reason AS reason,
+               log.request_ip AS request_ip,
+               log.created_at AS created_at
+        FROM member_access_audit_log log
+        LEFT JOIN members actor ON actor.id = log.actor_member_id
+        WHERE log.target_member_id = #{targetMemberId}
+        ORDER BY log.created_at DESC, log.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+</mapper>

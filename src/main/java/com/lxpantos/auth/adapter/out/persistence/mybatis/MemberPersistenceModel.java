@@ -10,6 +10,10 @@ public class MemberPersistenceModel {
     private String phoneNumber;
     private LocalDateTime createdAt;
     private LocalDateTime lastLoginAt;
+    private String role;
+    private String status;
+    private long version;
+    private LocalDateTime roleUpdatedAt;
 
     public Long getId() {
         return id;
@@ -65,5 +69,37 @@ public class MemberPersistenceModel {
 
     public void setLastLoginAt(LocalDateTime lastLoginAt) {
         this.lastLoginAt = lastLoginAt;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public void setVersion(long version) {
+        this.version = version;
+    }
+
+    public LocalDateTime getRoleUpdatedAt() {
+        return roleUpdatedAt;
+    }
+
+    public void setRoleUpdatedAt(LocalDateTime roleUpdatedAt) {
+        this.roleUpdatedAt = roleUpdatedAt;
     }
 }
