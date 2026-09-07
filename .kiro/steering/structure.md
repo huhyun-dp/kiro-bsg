@@ -114,9 +114,11 @@ com.lxpantos.auth
 ```
 src/main/resources/
 ├── application.yml                   # 애플리케이션 설정
-├── schema.sql                        # 테이블 DDL (앱 시작 시 항상 실행)
-├── db/seed/
-│   └── member-seed-true.sql          # 데모 시드 데이터
+├── db/
+│   ├── changelog/
+│   │   └── db.changelog-master.yaml  # Liquibase 스키마 생성·증분 변경 이력
+│   └── seed/
+│       └── member-seed-true.sql       # 데모 시드 데이터
 ├── mapper/
 │   ├── MemberMapper.xml              # 쓰기 쿼리 (insert, update, select; role/status/version 포함)
 │   ├── MemberQueryMapper.xml         # 검색 쿼리 (keyword LIKE 검색)

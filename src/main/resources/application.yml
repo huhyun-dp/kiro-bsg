@@ -15,6 +15,11 @@ spring:
       mode: always
       encoding: UTF-8
       data-locations: optional:classpath:db/seed/member-seed-${SEED_DEMO_MEMBERS:true}.sql
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    database-change-log-table: databasechangelog
+    database-change-log-lock-table: databasechangeloglock
   thymeleaf:
     cache: ${THYMELEAF_CACHE:true}
 

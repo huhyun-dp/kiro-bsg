@@ -1,0 +1,209 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1-create-members
+      author: bsg
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: members
+      changes:
+        - createTable:
+            tableName: members
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_members_email
+              - column:
+                  name: password_hash
+                  type: VARCHAR(60)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phone_number
+                  type: VARCHAR(11)
+              - column:
+                  name: created_at
+                  type: DATETIME(6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_login_at
+                  type: DATETIME(6)
+
+  - changeSet:
+      id: 2-add-member-role
+      author: bsg
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: members
+                columnName: role
+      changes:
+        - addColumn:
+            tableName: members
+            columns:
+              - column:
+                  name: role
+                  type: VARCHAR(20)
+                  defaultValue: VIEWER
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 3-add-member-status
+      author: bsg
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: members
+                columnName: status
+      changes:
+        - addColumn:
+            tableName: members
+            columns:
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 4-add-member-version
+      author: bsg
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: members
+                columnName: version
+      changes:
+        - addColumn:
+            tableName: members
+            columns:
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 5-add-member-role-updated-at
+      author: bsg
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: members
+                columnName: role_updated_at
+      changes:
+        - addColumn:
+            tableName: members
+            columns:
+              - column:
+                  name: role_updated_at
+                  type: DATETIME(6)
+
+  - changeSet:
+      id: 6-create-member-access-audit-log
+      author: bsg
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: member_access_audit_log
+      changes:
+        - createTable:
+            tableName: member_access_audit_log
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: target_member_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_member_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: before_role
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: before_status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: after_role
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: after_status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reason
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: request_ip
+                  type: VARCHAR(45)
+              - column:
+                  name: created_at
+                  type: DATETIME(6)
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 7-create-audit-target-created-index
+      author: bsg
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                tableName: member_access_audit_log
+                indexName: idx_audit_target_created
+      changes:
+        - createIndex:
+            tableName: member_access_audit_log
+            indexName: idx_audit_target_created
+            columns:
+              - column:
+                  name: target_member_id
+              - column:
+                  name: created_at
+              - column:
+                  name: id

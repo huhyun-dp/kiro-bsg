@@ -191,16 +191,17 @@ docker compose down
 
 ## DB
 
-앱 시작 시 [`schema.sql`](src/main/resources/schema.sql)이 실행됩니다.
+앱 시작 시 Liquibase가 [`db/changelog`](src/main/resources/db/changelog)의 변경 이력을
+순서대로 실행합니다. 기존 `members` 테이블과 컬럼은 precondition으로 감지해 유지하면서
+누락된 변경만 적용하고, 신규 DB에는 전체 스키마를 생성합니다.
 
 - 휴대폰 번호는 하이픈을 제거해 저장하고 회원관리 API에서는 `010-****-5678` 형식으로 마스킹합니다.
 - 가입일시와 마지막 로그인 일시는 `Asia/Seoul` 기준으로 저장합니다.
 
 ### 권한 관리 스키마 확장
 
-기존 데이터를 삭제·초기화하지 않고 안전하게(추가 전용) 스키마를 확장합니다. `schema.sql` 은
-`ALTER TABLE ... ADD COLUMN IF NOT EXISTS` 로 다음 컬럼을 추가하며(H2 MySQL 호환 모드와
-MySQL 8 모두 지원), 기존 회원은 기본값(`VIEWER`, `ACTIVE`, `version=0`)으로 채워집니다.
+기존 데이터를 삭제·초기화하지 않고 추적되는 changeSet에서 다음 컬럼을 한 번만 추가합니다.
+기존 회원은 기본값(`VIEWER`, `ACTIVE`, `version=0`)으로 채워집니다.
 
 - `members.role VARCHAR(20) NOT NULL DEFAULT 'VIEWER'`
 - `members.status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'`

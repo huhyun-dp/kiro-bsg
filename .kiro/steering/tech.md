@@ -22,6 +22,7 @@
 - **MyBatis** (`mybatis-spring-boot-starter:3.0.1`) — SQL 매퍼, XML 방식
   - 매퍼 위치: `classpath:/mapper/*.xml`
   - underscore → camelCase 자동 변환 (`map-underscore-to-camel-case: true`)
+- **Liquibase** — changeSet 기반 DB 스키마 생성 및 기존 DB 마이그레이션
 - **MySQL** (`mysql-connector-j`, runtime scope) — 운영 데이터베이스
 - **H2** (테스트 전용)
 - **HikariCP** — 커넥션 풀 (max 10, min-idle 2, timeout 3초)
@@ -43,7 +44,7 @@ CREATE TABLE IF NOT EXISTS members (
     phone_number    VARCHAR(11) NULL,       -- 숫자만 저장 (010XXXXXXXX)
     created_at      DATETIME(6) NOT NULL,   -- 마이크로초 정밀도
     last_login_at   DATETIME(6) NULL,
-    -- 권한 관리(추가 전용 확장). ALTER TABLE ... ADD COLUMN IF NOT EXISTS 로 안전하게 추가
+    -- 권한 관리 컬럼(Liquibase changeSet에서 추가)
     role            VARCHAR(20) NOT NULL DEFAULT 'VIEWER',   -- ADMIN/OPERATOR/VIEWER
     status          VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',   -- ACTIVE/SUSPENDED
     version         BIGINT NOT NULL DEFAULT 0,               -- 낙관적 잠금
@@ -68,8 +69,9 @@ CREATE TABLE IF NOT EXISTS member_access_audit_log (
 );
 ```
 
-- `schema.sql`은 앱 시작 시 항상 실행 (`spring.sql.init.mode: always`)
-- 스키마 확장은 기존 데이터를 삭제·초기화하지 않는 추가 전용(`ADD COLUMN IF NOT EXISTS`) 방식이며 H2 MySQL 호환 모드와 MySQL 8 모두 지원
+- Liquibase가 `db/changelog/db.changelog-master.yaml`의 changeSet 이력을 관리
+- 기존 테이블·컬럼·인덱스는 precondition으로 감지해 유지하고 누락된 권한 관리 스키마만 적용
+- `spring.sql.init`은 Liquibase 마이그레이션 이후 환경별 데모 seed 데이터만 실행
 - Seed 데이터: `SEED_DEMO_MEMBERS` 환경변수로 제어 (기본 `true`, 데모 시 `member001`=ADMIN / `member002`=OPERATOR 로 지정)
 - 초기 관리자: `BOOTSTRAP_ADMIN_EMAIL` 로 지정한 회원을 앱 시작 시 ADMIN/ACTIVE 로 승격
 
