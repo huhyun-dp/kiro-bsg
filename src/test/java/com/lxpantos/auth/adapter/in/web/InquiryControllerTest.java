@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class InquiryControllerTest {
 
-    private final SessionMember sessionMember = new SessionMember(1L, "test@example.com", "홍길동");
+    private final SessionMember sessionMember = new SessionMember(1L, "test@example.com", "홍길동", com.lxpantos.auth.domain.member.MemberRole.VIEWER);
 
     private CreateInquiryUseCase createUseCase;
     private InquiryQueryUseCase queryUseCase;

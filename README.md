@@ -194,6 +194,9 @@ docker compose down
 앱 시작 시 Liquibase가 [`db/changelog`](src/main/resources/db/changelog)의 변경 이력을
 순서대로 실행합니다. 기존 `members` 테이블과 컬럼은 precondition으로 감지해 유지하면서
 누락된 변경만 적용하고, 신규 DB에는 전체 스키마를 생성합니다.
+문의 테이블(`inquiries`)도 같은 `db.changelog-master.yaml`에서 관리하며,
+기존 문의 테이블과 데이터는 유지합니다. 이후 스키마 변경은 기존 changeSet을 수정하지 않고
+새 changeSet을 추가합니다. `spring.sql.init`은 데모 seed 데이터만 실행합니다.
 
 - 휴대폰 번호는 하이픈을 제거해 저장하고 회원관리 API에서는 `010-****-5678` 형식으로 마스킹합니다.
 - 가입일시와 마지막 로그인 일시는 `Asia/Seoul` 기준으로 저장합니다.

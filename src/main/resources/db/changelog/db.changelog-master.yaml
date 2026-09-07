@@ -207,3 +207,51 @@ databaseChangeLog:
                   name: created_at
               - column:
                   name: id
+
+  - changeSet:
+      id: 8-create-inquiries
+      author: bsg
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: inquiries
+      changes:
+        - createTable:
+            tableName: inquiries
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: member_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_inquiries_member
+                    references: members(id)
+              - column:
+                  name: title
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: view_count
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: DATETIME(6)
+                  constraints:
+                    nullable: false
