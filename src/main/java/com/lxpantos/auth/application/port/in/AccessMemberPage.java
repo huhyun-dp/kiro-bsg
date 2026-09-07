@@ -1,5 +1,7 @@
 package com.lxpantos.auth.application.port.in;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
 /**
@@ -11,6 +13,7 @@ public record AccessMemberPage(
         int size,
         long totalElements
 ) {
+    @JsonProperty("totalPages")
     public int totalPages() {
         if (size <= 0) {
             return 0;

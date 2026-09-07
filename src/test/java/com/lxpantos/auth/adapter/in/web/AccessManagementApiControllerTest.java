@@ -109,12 +109,15 @@ class AccessManagementApiControllerTest {
     @Test
     void adminSearchAppliesStatusFilterAndPagination() throws Exception {
         mockMvc.perform(get("/api/admin/members")
+                        .param("keyword", "access-test")
                         .param("status", "ACTIVE")
                         .param("size", "2")
                         .param("page", "0")
                         .session(adminSession()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalElements").value(4))
+                .andExpect(jsonPath("$.totalPages").value(2))
                 .andExpect(jsonPath("$.content.length()").value(2));
     }
 
@@ -213,9 +216,11 @@ class AccessManagementApiControllerTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/admin/members/" + viewerId + "/audit-logs")
+                        .param("size", "1")
                         .session(adminSession()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2))
                 .andExpect(jsonPath("$.content[0].reason").value("두번째 변경"))
                 .andExpect(jsonPath("$.content[0].maskedRequestIp").isNotEmpty());
     }
