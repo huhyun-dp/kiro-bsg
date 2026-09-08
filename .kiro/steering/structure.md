@@ -205,6 +205,16 @@ adapter/out ←  application/port/out  ←  application/service
 
 - `.config.kiro`의 `specId`는 Spec마다 고유한 UUID를 사용한다.
 - `tasks.md`의 제목은 `# Implementation Plan: <spec-name>` 형식을 사용한다.
+- `tasks.md`는 **`## Task Dependency Graph` 섹션을 반드시 포함**한다(Kiro Spec Format 필수). 작업 간 선행 순서를 아래 JSON `waves` 형식으로 기재한다. 각 `wave`는 함께 수행 가능한 작업 묶음이며, 앞 wave가 완료되어야 다음 wave를 진행한다.
+
+```json
+{
+  "waves": [
+    { "id": 0, "tasks": ["1.1", "1.2"] },
+    { "id": 1, "tasks": ["2.1", "3.1"] }
+  ]
+}
+```
 
 ### Spec 종류와 갱신 원칙
 
