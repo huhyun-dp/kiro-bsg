@@ -1,6 +1,6 @@
 # 권한 관리(Access Management) 설계 문서
 
-> **문서 목적:** 권한 관리 기능의 구현 기준 업무 흐름 및 구조 설명 (기존 `as-is-system-analysis` 스펙과 분리 관리)
+> **문서 목적:** 권한 관리 기능의 구현 기준 업무 흐름 및 구조 설명 (기존 `member-auth-baseline` 스펙과 분리 관리)
 > **표기 규칙:**
 > - ✅ 확인됨 — 실제 구현 코드에서 직접 확인한 사실
 > - 🔶 추정 — 구현을 근거로 판단했으나 담당자 확인 권장
@@ -12,7 +12,7 @@
 
 **권한 관리 기능**은 기존 BSG Partners 회원관리 시스템에 역할 기반 접근 제어(RBAC)와 감사 로그를 추가한 확장이다. 회원은 역할(`ADMIN`/`OPERATOR`/`VIEWER`)과 계정 상태(`ACTIVE`/`SUSPENDED`)를 가지며, `ADMIN`만 `/admin/access` 화면과 `/api/admin/**` API로 다른 회원의 역할·상태를 변경할 수 있다. 모든 변경은 낙관적 잠금으로 동시성을 통제하고, 변경과 동일한 트랜잭션에서 감사 로그로 기록된다.
 
-이 기능은 기존 스펙([`as-is-system-analysis`](../as-is-system-analysis/requirements.md))의 확인 항목 **Q1**(권한 구분 필요 여부)에 대한 응답으로 도입되었다. 기존 인증·세션·회원 조회 기능은 그대로 유지되며, 본 기능은 그 위에 얹혀 동작한다.
+이 기능은 기존 스펙([`member-auth-baseline`](../member-auth-baseline/requirements.md))의 확인 항목 **Q1**(권한 구분 필요 여부)에 대한 응답으로 도입되었다. 기존 인증·세션·회원 조회 기능은 그대로 유지되며, 본 기능은 그 위에 얹혀 동작한다.
 
 | 사용 대상 | 권한 관리 접근 |
 |-----------|----------------|
@@ -414,6 +414,6 @@
 
 | 문서 | 범위 |
 |------|------|
-| [`as-is-system-analysis`](../as-is-system-analysis/) | 권한 구분 이전의 초기 시스템 스냅샷(회원가입·로그인·회원 조회) |
-| **본 스펙(`access-management`)** | 그 이후 추가된 역할·상태·권한 관리·감사 로그 기능 |
+| [`member-auth-baseline`](../member-auth-baseline/) | 권한 구분 이전의 초기 시스템 스냅샷(회원가입·로그인·회원 조회) |
+| **본 스펙(`member-access-management`)** | 그 이후 추가된 역할·상태·권한 관리·감사 로그 기능 |
 | `README.md`, `.kiro/steering/*` | 항상 최신 구현을 반영(권한 관리 포함) |

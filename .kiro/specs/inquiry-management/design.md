@@ -274,7 +274,7 @@ Liquibase changeSet `8-create-inquiries`가 테이블 존재 여부를 precondit
 
 | 문서 | 범위 |
 |------|------|
-| [`as-is-system-analysis`](../as-is-system-analysis/) | 권한 구분 이전 초기 시스템 스냅샷 |
-| [`access-management`](../access-management/) | 역할·상태·권한 관리·감사 로그 |
-| **본 스펙(`inquiry`)** | 문의 작성·목록·상세(조회수) 기능 |
+| [`member-auth-baseline`](../member-auth-baseline/) | 권한 구분 이전 초기 시스템 스냅샷 |
+| [`member-access-management`](../member-access-management/) | 역할·상태·권한 관리·감사 로그 |
+| **본 스펙(`inquiry-management`)** | 문의 작성·목록·상세(조회수) 기능 |
 | `README.md`, `.kiro/steering/*` | 항상 최신 구현 반영(문의 요청 포함) |

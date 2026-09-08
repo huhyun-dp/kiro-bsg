@@ -13,7 +13,7 @@
 > - 🔶 추정 — 구현을 근거로 판단했으나 담당자 확인 권장
 > - ❓ 확인 필요 — 코드만으로는 정확히 알 수 없는 내용
 
-이 기능은 기존 두 스펙([`as-is-system-analysis`](../as-is-system-analysis/), [`access-management`](../access-management/))과 독립적인 별도 기능이므로 별도 스펙으로 관리합니다. 좌측 사이드바 최상위 메뉴는 현재 `회원 관리`, `문의 요청`, `권한 관리(ADMIN 전용)`로 구성됩니다.
+이 기능은 기존 두 스펙([`member-auth-baseline`](../member-auth-baseline/), [`member-access-management`](../member-access-management/))과 독립적인 별도 기능이므로 별도 스펙으로 관리합니다. 좌측 사이드바 최상위 메뉴는 현재 `회원 관리`, `문의 요청`, `권한 관리(ADMIN 전용)`로 구성됩니다.
 
 ---
 

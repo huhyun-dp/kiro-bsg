@@ -95,9 +95,9 @@ $env:BOOTSTRAP_ADMIN_EMAIL = "admin@your-company.com"
 
 | 로그인 | 회원가입 |
 | --- | --- |
-| ![로그인 화면](.kiro/specs/as-is-system-analysis/screenshots/01-login.png) | ![회원가입 화면](.kiro/specs/as-is-system-analysis/screenshots/02-signup.png) |
+| ![로그인 화면](.kiro/specs/member-auth-baseline/screenshots/01-login.png) | ![회원가입 화면](.kiro/specs/member-auth-baseline/screenshots/02-signup.png) |
 
-![회원관리 화면](.kiro/specs/as-is-system-analysis/screenshots/05-members.png)
+![회원관리 화면](.kiro/specs/member-auth-baseline/screenshots/05-members.png)
 
 ## 기술 스택
 
@@ -353,9 +353,10 @@ Kiro가 프로젝트의 목적과 구현 원칙을 일관되게 이해하고, �
 - [`structure.md`](.kiro/steering/structure.md): 헥사고날 아키텍처, 패키지·리소스 구조와 의존성 규칙
 - [`tech.md`](.kiro/steering/tech.md): 기술 스택, 데이터베이스, 환경변수와 코드 컨벤션
 
-### AS-IS 시스템 분석 Spec
+### Spec
 
-- [`requirements.md`](.kiro/specs/as-is-system-analysis/requirements.md): 현재 구현 기준 요구사항과 확인 필요 항목
-- [`design.md`](.kiro/specs/as-is-system-analysis/design.md): 업무 흐름, 아키텍처, 화면과 데이터 모델
-- [`tasks.md`](.kiro/specs/as-is-system-analysis/tasks.md): PI/PO 확인·문서 보완·미검증 기능·개선 후보 체크리스트
-- [`screenshots/`](.kiro/specs/as-is-system-analysis/screenshots): 로그인, 회원가입, 회원 조회와 접근 제어 화면 캡처
+Spec 폴더는 `<도메인>-<대상/기능>` kebab-case 명명 규칙을 따른다(상세: [`structure.md`](.kiro/steering/structure.md) "Spec 네이밍 및 구조 컨벤션").
+
+- [`member-auth-baseline`](.kiro/specs/member-auth-baseline/): 권한 구분 이전 초기 시스템(회원가입·로그인·회원 조회) 스냅샷 + 화면 캡처(`screenshots/`)
+- [`member-access-management`](.kiro/specs/member-access-management/): 역할·상태·권한 관리·감사 로그
+- [`inquiry-management`](.kiro/specs/inquiry-management/): 문의 작성·목록·상세(조회수)

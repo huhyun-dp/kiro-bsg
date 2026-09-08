@@ -1,4 +1,4 @@
-# Implementation Plan: as-is-system-analysis
+# Implementation Plan: member-auth-baseline
 
 ## Overview
 
@@ -9,7 +9,7 @@ AS-IS 시스템 분석 결과를 검토·확인·보완하기 위한 체크리�
 - [ ] 1. 업무 담당자 확인 사항
   - [x] 1.1 회원 관리 화면 접근 정책 확인
     - 현재 로그인한 모든 회원이 전체 회원 목록을 조회할 수 있다. 내부 운영 담당자만 가입하는 시스템인지, 또는 일반 회원과 관리자를 구분해야 하는지 확인한다.
-    - **해소됨:** 역할(`ADMIN`/`OPERATOR`/`VIEWER`) 구분과 권한 관리 기능이 도입되었다. 상세는 [`access-management` 스펙](../access-management/) 참조. (본 as-is 문서는 권한 구분 이전 스냅샷으로 보존)
+    - **해소됨:** 역할(`ADMIN`/`OPERATOR`/`VIEWER`) 구분과 권한 관리 기능이 도입되었다. 상세는 [`member-access-management` 스펙](../member-access-management/) 참조. (본 문서는 권한 구분 이전 스냅샷으로 보존)
   - [ ] 1.2 오류 화면 관리자 연락처 현행화 확인
     - 오류 화면(`error.html`)에 `02-6730-3200`이 고정값으로 기재되어 있다. 현재도 유효한 연락처인지 확인한다. 변경이 필요하면 개발자에게 수정 요청이 필요하다.
   - [ ] 1.3 운영 환경 보안 설정 적용 확인

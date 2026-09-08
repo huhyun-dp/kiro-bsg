@@ -1,4 +1,4 @@
-# Implementation Plan: inquiry
+# Implementation Plan: inquiry-management
 
 ## Overview
 
@@ -63,6 +63,6 @@
 
 ## 다른 스펙과의 관계
 
-- `as-is-system-analysis`: 권한 구분 이전 초기 스냅샷(보존).
-- `access-management`: 역할·상태·권한 관리·감사 로그.
-- 본 스펙(`inquiry`): 문의 작성·목록·상세 기능. 세 스펙은 서로 독립이며 겹치는 접근 제어 서술은 각 기능 스펙을 우선 참조한다.
+- `member-auth-baseline`: 권한 구분 이전 초기 스냅샷(보존).
+- `member-access-management`: 역할·상태·권한 관리·감사 로그.
+- 본 스펙(`inquiry-management`): 문의 작성·목록·상세 기능. 세 스펙은 서로 독립이며 겹치는 접근 제어 서술은 각 기능 스펙을 우선 참조한다.
