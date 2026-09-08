@@ -112,6 +112,7 @@ Understand → Analyze → Plan → Implement → Validate → Regression Test �
 - 버그 수정 시 주변 코드를 청소하지 않는다. 단순 기능에 불필요한 설정 가능성을 추가하지 않는다.
 - 기존 기능을 삭제/변경하지 않는다.
 - 프로젝트 기존 컨벤션(헥사고날 계층, 수동 빈 등록, MyBatis XML 매퍼 등)을 따른다.
+- Spec 문서(`.kiro/specs/**`)를 생성·변경할 때는 `structure.md`의 "Spec 네이밍 및 구조 컨벤션"(폴더 kebab-case, 파일 구조, living/snapshot 구분, Spec 선택 기준)을 따른다.
 
 ## 6. 테스트 기준 (Test)
 

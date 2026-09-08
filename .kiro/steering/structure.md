@@ -167,3 +167,58 @@ adapter/out ←  application/port/out  ←  application/service
 7. **빈 등록**: `config/` 의 `@Configuration` 클래스에서 서비스 빈 수동 등록
    - 인터셉터를 등록하는 `WebMvcConfigurer` 설정 클래스에는 인터셉터가 의존하는 서비스 `@Bean` 을 함께 두지 않는다(순환 참조 방지). 빈 정의와 인터셉터 등록을 별도 `@Configuration` 으로 분리한다.
 8. **인터셉터 등록**: 새 경로 보호가 필요하면 `WebConfiguration` 또는 `MemberQueryConfiguration` 에 인터셉터 추가
+
+## Spec 네이밍 및 구조 컨벤션
+
+`.kiro/specs/` 아래 Spec 문서를 생성·변경할 때 아래 규칙을 따른다. 이 규칙은 향후 모든 Spec 작업에 적용된다.
+
+### 폴더 네이밍
+
+- **형식**: `kebab-case` — 영문 소문자, 숫자, 하이픈(`-`)만 사용한다. 대문자·공백·언더스코어(`_`)·한글·특수문자 금지.
+- **의미**: 기능/도메인을 나타내는 명사 중심으로 짓는다. 2~4단어를 권장한다.
+- **도메인 접두**: 특정 도메인에 속한 기능은 `<도메인>-<기능>` 형태로 접두어를 두어 정렬 시 응집도를 높이는 것을 권장한다(예: `member-access`). 단, 이미 의미가 분명하고 독립적인 기능은 단일 명사도 허용한다(예: `inquiry`).
+- **예약 성격**: AS-IS(현행 분석) 스냅샷 문서는 `-analysis` 접미어로 성격을 드러낸다(예: `as-is-system-analysis`).
+- 한 기능(독립적으로 설계·릴리스 가능한 단위) = 한 폴더. 성격이 다른 기능을 한 폴더에 섞지 않는다.
+
+### 폴더 내부 파일 구조 (필수)
+
+각 Spec 폴더는 다음 파일을 포함한다. 파일명은 고정이며 변경하지 않는다.
+
+```
+.kiro/specs/<spec-name>/
+├── .config.kiro        # {"specId": "<uuid>", "workflowType": "...", "specType": "..."} (한 줄 JSON)
+├── requirements.md     # 요구사항 (EARS 스타일 Acceptance Criteria, ✅/🔶/❓ 표기)
+├── design.md           # 설계 (Overview/Architecture/Components/Data Models/Error Handling/Properties/Testing)
+├── tasks.md            # 구현·확인 체크리스트 ([x] 완료 / [ ] 확인·향후)
+└── screenshots/        # (선택) 화면 캡처
+```
+
+- `.config.kiro`의 `specId`는 Spec마다 고유한 UUID를 사용한다.
+- `tasks.md`의 제목은 `# Implementation Plan: <spec-name>` 형식을 사용한다.
+
+### Spec 종류와 갱신 원칙
+
+- **living spec** (예: `access-management`, `inquiry`): 해당 기능이 바뀌면 계속 최신화한다.
+- **snapshot spec** (예: `as-is-system-analysis`): 특정 시점 기록이므로 본문을 편집하지 않고 보존한다. 후속 변경은 새 living spec으로 분리하고, 스냅샷에는 "해소됨 → 대상 spec 참조" 링크만 남긴다.
+
+### 어떤 Spec에 작성할지 판단 기준
+
+- 기존 기능의 확장/수정 → 해당 기능의 living spec을 갱신한다(불필요한 신규 Spec 남발 금지).
+- 독립적으로 설계·릴리스할 만큼 큰 새 기능 → 새 Spec 폴더를 만든다.
+- 성격이 완전히 다른 내용을 기존 Spec에 억지로 끼워 넣지 않는다.
+- 어떤 경우든 always steering(`product.md`/`structure.md`/`tech.md`)은 최신 구현을 반영하도록 함께 갱신한다.
+
+### 상호 참조
+
+- Spec 간 링크는 상대 경로를 사용한다(예: `../access-management/requirements.md`).
+- 각 living spec 문서 하단에 다른 Spec과의 관계(범위 구분)를 표로 명시한다.
+
+### 현재 Spec 목록 (컨벤션 부합)
+
+| 폴더 | 종류 | 범위 |
+|------|------|------|
+| `as-is-system-analysis` | snapshot | 권한 구분 이전 초기 시스템(회원가입·로그인·회원 조회) |
+| `access-management` | living | 역할·상태·권한 관리·감사 로그 |
+| `inquiry` | living | 문의 작성·목록·상세(조회수) |
+
+> 위 3개 폴더는 모두 kebab-case 규칙에 부합하므로 폴더명을 변경하지 않는다. 향후 신규 Spec부터 본 컨벤션을 그대로 적용한다.
