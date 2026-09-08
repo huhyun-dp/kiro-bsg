@@ -10,15 +10,18 @@
 - 휴대폰 번호 숫자 저장 및 `010-****-5678` 형식의 조회 마스킹
 - 가입일시·최근 로그인 일시의 `Asia/Seoul` 기준 처리
 - 조회 화면 확인용 데모 회원 100명 멱등성 보장하며 초기화 진행
+- **문의 요청**: 로그인한 사용자의 문의 작성·목록·상세 조회, 최신순 10건 단위 페이지네이션과 조회수 표시
 - **권한 관리(ADMIN 전용)**: 역할(`ADMIN`/`OPERATOR`/`VIEWER`)·계정 상태(`ACTIVE`/`SUSPENDED`) 변경, 서버 사이드 페이지네이션·필터·검색, 변경 사유 입력과 확인 UI, 낙관적 잠금 충돌 감지
 - **권한 변경 감사 로그**: 모든 역할/상태 변경을 변경과 동일 트랜잭션으로 기록하고 최신순 페이지네이션으로 조회
 
 ## 권한 관리(Access Management)
 
-로그인 후 좌측 사이드바는 다음 두 개의 최상위 메뉴로 구성됩니다.
+로그인 후 좌측 사이드바는 다음 메뉴로 구성됩니다. 일반 사용자는 회원 관리·문의 요청을,
+`ADMIN` 사용자는 권한 관리까지 총 세 개의 메뉴를 확인할 수 있습니다.
 
 1. **회원 관리** — 모든 로그인 사용자에게 표시 (`/members`)
-2. **권한 관리** — `ADMIN` 역할에게만 표시 (`/admin/access`)
+2. **문의 요청** — 모든 로그인 사용자에게 표시 (`/inquiries`)
+3. **권한 관리** — `ADMIN` 역할에게만 표시 (`/admin/access`)
 
 ### 역할과 계정 상태
 
@@ -52,6 +55,42 @@ $env:BOOTSTRAP_ADMIN_EMAIL = "admin@your-company.com"
 데모 환경(`SEED_DEMO_MEMBERS=true`)에서는 `member001@bsg-demo.local` 이 `ADMIN`,
 `member002@bsg-demo.local` 이 `OPERATOR` 로 지정되어 권한 관리 화면을 즉시 확인할 수 있습니다.
 
+## 문의 요청(Inquiry)
+
+로그인한 사용자가 문의를 등록하고 전체 문의 목록과 상세 내용을 확인하는 기능입니다.
+회원관리와 공통 사이드바·스타일을 사용하며, 문의 목록은 TOAST UI Grid 없이 HTML 테이블로 표시합니다.
+
+### 화면과 사용 흐름
+
+| 화면 | 주요 기능 |
+| --- | --- |
+| 문의 목록 | 번호·제목·조회수·작성일과 전체 건수 표시, 최신순 정렬, 페이지당 10건 조회 |
+| 문의 작성 | 목록의 **문의 작성** 버튼으로 이동, 제목·내용 입력 후 **등록**, **취소** 시 목록으로 이동 |
+| 문의 상세 | 목록의 제목을 클릭하여 작성자·제목·전체 내용·작성일시·조회수 확인, **목록으로** 이동 |
+
+등록에 성공하면 작성한 문의의 상세 화면으로 이동합니다. 목록에는 내용 미리보기를 표시하지 않습니다.
+
+### 입력 검증
+
+| 항목 | 조건 | 검증 방식 |
+| --- | --- | --- |
+| 제목 | 필수, 공백만 입력 불가, 최대 20자 | 입력창 `maxlength`와 서버의 `@NotBlank`·`@Size` |
+| 내용 | 필수, 공백만 입력 불가, 최대 500자 | 입력창 `maxlength`와 서버의 `@NotBlank`·`@Size` |
+
+검증에 실패하면 입력한 값을 유지한 작성 화면에서 항목별 오류 메시지를 표시합니다.
+
+### 정책
+
+- 목록·상세 조회와 작성은 로그인한 활성 계정이 사용할 수 있으며, ADMIN 전용 기능이 아닙니다.
+- 본인이 작성한 문의뿐 아니라 다른 사용자가 작성한 문의도 조회할 수 있습니다.
+- 작성자는 요청으로 전달받지 않고 로그인 세션의 회원 ID로 지정합니다.
+- 문의 등록 폼에는 CSRF 토큰을 포함하며, 기존 세션 기반 CSRF 검증을 적용합니다.
+- 문의는 작성일시 내림차순으로 정렬하며, 작성일시가 같으면 ID 내림차순으로 정렬합니다.
+- 페이지 번호는 기본값 1이며, 범위를 벗어나면 첫 페이지 또는 마지막 페이지로 보정합니다.
+- 조회수는 0으로 저장한 뒤 상세 화면을 조회할 때마다 1 증가합니다. 등록 직후 상세 이동과 새로고침도 포함하며 사용자별 중복 조회를 제외하지 않습니다.
+- 존재하지 않는 문의의 상세 조회는 HTTP 404를 반환합니다.
+- 현재 제공 범위는 작성·목록·상세 조회이며 수정·삭제·검색·답변 기능은 포함하지 않습니다.
+
 ## 주요 화면
 
 | 로그인 | 회원가입 |
@@ -81,10 +120,11 @@ $env:BOOTSTRAP_ADMIN_EMAIL = "admin@your-company.com"
 ```text
 com.lxpantos.auth
 ├─ domain/member                 순수 도메인 모델
+├─ domain/inquiry                문의 도메인 모델
 ├─ application
-│  ├─ port/in                   회원가입·로그인·회원조회 유스케이스
-│  ├─ port/out                  회원 저장·조회 및 암호화 포트
-│  └─ service                   인증·회원조회 애플리케이션 서비스
+│  ├─ port/in                   회원가입·로그인·회원조회·문의 작성/조회 유스케이스
+│  ├─ port/out                  회원·문의 저장/조회 및 암호화 포트
+│  └─ service                   인증·회원조회·문의 애플리케이션 서비스
 ├─ adapter
 │  ├─ in/web                    MVC/API, 폼, 세션, 인증, CSRF
 │  └─ out                       MyBatis 쓰기·조회 저장소, BCrypt
@@ -157,6 +197,10 @@ docker compose down
 | POST | `/logout` | 필요 | 세션 무효화 후 로그인 화면으로 이동 |
 | GET | `/members` | 필요 | 회원 목록·검색 화면 |
 | GET | `/api/members?keyword=` | 필요 | 회원 전체 조회 또는 이름·이메일·휴대폰 번호 검색 |
+| GET | `/inquiries?page=1` | 필요 | 문의 목록(최신순, 페이지당 10건) |
+| GET | `/inquiries/new` | 필요 | 신규 문의 작성 화면 |
+| POST | `/inquiries` | 필요 | 문의 등록(제목·내용 검증, CSRF 필요), 성공 시 상세 화면으로 이동 |
+| GET | `/inquiries/{id}` | 필요 | 문의 상세 조회 및 조회수 증가, 미존재 시 404 |
 | GET | `/admin/access` | ADMIN | 권한 관리 화면 |
 | GET | `/api/admin/members` | ADMIN | 권한 관리 대상 회원 목록(검색·역할/상태 필터·페이지네이션) |
 | PUT | `/api/admin/members/{id}/access` | ADMIN | 회원 역할/상태 변경(감사 로그 기록, CSRF 필요) |
@@ -214,6 +258,22 @@ docker compose down
 또한 권한 변경 감사 로그 테이블 `member_access_audit_log` 를 생성합니다(대상/수행자 회원 ID,
 변경 전후 역할·상태, 사유, 요청 IP, 변경 일시).
 
+### 문의 요청 스키마
+
+Liquibase의 `8-create-inquiries` changeSet이 `inquiries` 테이블을 생성합니다.
+이미 테이블이 있으면 생성을 건너뛰어 기존 문의 데이터를 유지합니다.
+
+| 컬럼 | 타입 | 용도 |
+| --- | --- | --- |
+| `id` | `BIGINT` | 자동 증가 문의 ID, 기본키 |
+| `member_id` | `BIGINT` | 작성자 회원 ID, `members(id)` 외래키 |
+| `title` | `VARCHAR(20)` | 문의 제목 |
+| `content` | `TEXT` | 문의 내용, 입력 검증에서 최대 500자로 제한 |
+| `view_count` | `BIGINT` | 조회수, 기본값 0 |
+| `created_at` | `DATETIME(6)` | 작성일시 |
+
+모든 컬럼은 필수값이며, 상세 조회 시 작성자 이름은 `members` 테이블과 조인하여 가져옵니다.
+
 ### 초기 회원 데이터
 
 [`member-seed-true.sql`](src/main/resources/db/seed/member-seed-true.sql)은 애플리케이션 초기화 시
@@ -266,6 +326,21 @@ docker compose down
 - 권한 변경과 감사 로그의 트랜잭션 원자성, 감사 로그 최신순 조회와 IP 마스킹
 - 검색·역할 필터·상태 필터·페이지네이션
 - 초기 관리자(`BOOTSTRAP_ADMIN_EMAIL`) 승격 정책
+
+### 문의 요청 테스트
+
+문의 관련 테스트만 실행하려면 다음 명령을 사용합니다.
+
+```powershell
+.\mvnw.cmd "-Dtest=InquiryFormTest,InquiryServiceTest,InquiryControllerTest,InquirySchemaMigrationTest" test
+```
+
+| 테스트 | 검증 항목 |
+| --- | --- |
+| `InquiryFormTest` | 정상 입력, 제목·내용 공백 거부, 20자·500자 초과 거부 및 경계값 허용 |
+| `InquiryServiceTest` | 작성자·제목·내용·초기 조회수·작성일시 저장 값 |
+| `InquiryControllerTest` | 목록·작성·상세 화면 반환 및 존재하지 않는 문의의 404 처리 |
+| `InquirySchemaMigrationTest` | 문의 테이블 신규 생성, 마이그레이션 재실행, 기존 테이블의 데이터 보존 |
 
 ## Kiro 프로젝트 파일
 
