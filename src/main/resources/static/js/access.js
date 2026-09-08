@@ -13,6 +13,25 @@
     var state = {page: 0, totalPages: 1, keyword: '', role: '', status: ''};
     var audit = {memberId: null, page: 0, totalPages: 1};
 
+    // 회원 관리 그리드와 동일한 테마: 셀/헤더 테두리로 행마다 구분선을 표시한다.
+    tui.Grid.applyTheme('default', {
+        outline: {
+            border: '#c5cad3',
+            showVerticalBorder: true
+        },
+        cell: {
+            normal: {
+                border: '#d0d5dd',
+                showVerticalBorder: true
+            },
+            header: {
+                border: '#d0d5dd',
+                showVerticalBorder: true,
+                background: '#fafafa'
+            }
+        }
+    });
+
     var els = {
         form: document.getElementById('accessSearchForm'),
         keyword: document.getElementById('accessKeyword'),
@@ -88,10 +107,15 @@
     });
 
     function showStatus(el, message, isError) {
+        // 목록 상태 표시줄은 항상 자리를 차지해(빈 텍스트여도 hidden 처리하지 않음)
+        // 메시지 토글 시 그리드가 위아래로 밀려 깜빡이는 현상을 방지한다.
+        var keepSpace = el === els.statusMessage;
         if (!message) {
-            el.hidden = true;
             el.textContent = '';
             el.classList.remove('is-error');
+            if (!keepSpace) {
+                el.hidden = true;
+            }
             return;
         }
         el.hidden = false;
@@ -104,7 +128,6 @@
     }
 
     function loadMembers() {
-        showStatus(els.statusMessage, '불러오는 중입니다...', false);
         var params = new URLSearchParams();
         params.set('page', state.page);
         params.set('size', PAGE_SIZE);

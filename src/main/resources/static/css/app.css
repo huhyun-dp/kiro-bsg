@@ -574,8 +574,11 @@ a:focus-visible {
 
 .access-status-message {
     margin: 0 0 14px;
+    /* 메시지 유무와 관계없이 높이를 고정해 그리드가 밀리지 않도록 한다(깜빡임 방지). */
+    min-height: 19px;
     color: var(--muted);
     font-size: 13px;
+    line-height: 1.45;
 }
 
 .access-status-message.is-error,
