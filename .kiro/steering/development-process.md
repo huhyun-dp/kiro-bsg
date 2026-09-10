@@ -187,20 +187,30 @@ Understand → Analyze → Plan → Implement → Validate → Regression Test �
 
 이번 단계에서는 구성하지 않는다. 아래는 확장 계획만 문서화한 것이다.
 
-### 14-1. Hooks (미생성)
+### 14-1. Hooks (생성됨)
 
-향후 필요 시 `.kiro/hooks/` 에 추가할 수 있다. 이 프로젝트에서 실질적으로 유용한 후보는 다음 하나다.
+이 프로젝트에서 실질적으로 유용한 hook 을 `.kiro/hooks/` 에 생성했다.
 
-- **PostTaskExec 기반 Maven 테스트 자동화**: Spec task 완료 후 `./mvnw test` 를 실행해 regression 을 자동 검증.
-  - 예시 스키마(참고용, 이번엔 생성하지 않음):
+- **작업 완료 후 Maven 테스트 자동화** (`.kiro/hooks/run-maven-tests-after-task.kiro.hook`): Spec task 완료 후(`postTaskExecution`) `./mvnw test` 를 실행해 regression 을 자동 검증한다. 개발자·Agent 작업 흐름을 위한 자동 트리거 hook 이다.
+  - 실제 생성된 hook 정의:
     ```json
     {
-      "version": "v1",
-      "hooks": [{
-        "name": "Run Maven Tests After Task",
-        "trigger": "PostTaskExec",
-        "action": { "type": "command", "command": "./mvnw test" }
-      }]
+      "enabled": true,
+      "name": "작업 완료 후 기존 기능 동작 확인",
+      "version": "1",
+      "when": { "type": "postTaskExecution" },
+      "then": { "type": "runCommand", "command": "./mvnw test" }
+    }
+    ```
+- **지금 기능이 정상인지 확인하기 (비개발자용, 수동 실행)** (`.kiro/hooks/check-service-health.kiro.hook`): 기획·현업·SM 담당자가 Kiro 의 Agent Hook 목록에서 버튼처럼 눌러 직접 실행한다. 내부적으로 기존 기능 동작 확인(`./mvnw test`)을 실행하되, 결과를 개발 용어 없이 쉬운 말(정상/확인 필요·점검 항목 수·문제 항목 수)로 로그(`.kiro/hooks/logs/check-service-health.log`)에 남긴다.
+  - 실제 생성된 hook 정의:
+    ```json
+    {
+      "enabled": true,
+      "name": "지금 기능이 정상인지 확인하기",
+      "version": "1",
+      "when": { "type": "userTriggered" },
+      "then": { "type": "runCommand", "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .kiro/hooks/check-service-health.ps1" }
     }
     ```
 - lint / type-check Hook 은 현재 Java/Maven 구성에 대응 도구가 없어 추가하지 않는다(불필요한 Hook 지양).
@@ -228,5 +238,5 @@ Kiro → Implement → Test → Regression → Commit → Push → CI/CD
 ### 14-3. 현재 제한사항
 
 - Push / Deploy / CI/CD 는 실제로 구성되어 있지 않다.
-- Hook 은 생성되어 있지 않다(확장 지점만 문서화).
+- Hook 은 2개가 생성되어 있다: 작업 완료 후 Maven 테스트 자동화(`.kiro/hooks/run-maven-tests-after-task.kiro.hook`, 자동 트리거)와 비개발자용 수동 실행 "지금 기능이 정상인지 확인하기"(`.kiro/hooks/check-service-health.kiro.hook`).
 - Autonomous Mode 도 push/deploy/destructive/보안·인프라 변경은 자동 수행하지 않는다.
