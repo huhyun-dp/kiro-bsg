@@ -3,7 +3,7 @@
 
     var API_BASE = '/api/admin/members';
     var PAGE_SIZE = 20;
-    var AUDIT_PAGE_SIZE = 5;
+    var AUDIT_PAGE_SIZE = 10;
 
     var csrfToken = (document.querySelector('meta[name="_csrf"]') || {}).content || '';
 

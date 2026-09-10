@@ -185,7 +185,7 @@
 1. WHEN 역할 또는 상태 변경이 성공하면, THE System SHALL 감사 로그를 1건 기록한다. ✅
 2. THE System SHALL 감사 로그에 대상 회원 ID, 수행자 회원 ID, 변경 전 역할·상태, 변경 후 역할·상태, 변경 사유, 변경 일시, 요청 IP를 포함한다. ✅
 3. THE System SHALL 회원 권한 변경과 감사 로그 저장을 동일한 트랜잭션에서 처리하여, 변경 실패 시 감사 로그만 남거나 회원 정보만 변경되는 일이 없도록 한다. ✅
-4. THE System SHALL `GET /api/admin/members/{id}/audit-logs`로 특정 회원의 감사 로그를 최신순으로 서버 페이지네이션하여 제공한다(기본 페이지 크기 10). 🔶
+4. THE System SHALL `GET /api/admin/members/{id}/audit-logs`로 특정 회원의 감사 로그를 최신순으로 서버 페이지네이션하여 제공한다(기본 페이지 크기 10, 권한 관리 화면도 동일하게 10건씩 요청). ✅
 5. THE System SHALL 권한 관리 화면에서 선택한 회원의 최근 감사 로그를 모달 상세 영역에 표시한다. ✅
 6. THE System SHALL 감사 로그 조회 시 요청 IP를 마스킹하여 표시한다(예: `10.0.0.***`). ✅
 
