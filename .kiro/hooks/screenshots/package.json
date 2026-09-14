@@ -1,0 +1,10 @@
+{
+  "name": "kiro-hook-screenshots",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "작업 완료 후 주요 화면을 건별 PNG로 캡처하는 Playwright 스크립트",
+  "dependencies": {
+    "playwright": "^1.62.0"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "작업 완료 후 기존 기능 동작 확인",
+  "description": "Spec 작업(task) 완료 후 ./mvnw test 를 실행해 기존 기능이 그대로 동작하는지 자동으로 확인한다. 개발 프로세스 문서(development-process.md) 14-1절에서 이 프로젝트에 유용하다고 지목한 유일한 hook 이다.",
+  "version": "1",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .kiro/hooks/run-maven-tests.ps1"
+  }
+}
