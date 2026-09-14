@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "작업 완료 후 변경 화면 캡처",
+  "description": "Spec 작업(task) 완료 후, 이번에 변경된 화면 템플릿에 해당하는 화면만 자동으로 캡처한다. 변경된 화면이 없으면 앱을 띄우지 않고 건너뛴다. 결과는 .kiro/hooks/logs/capture-screens.log 와 out/<타임스탬프>/ 에 남는다.",
+  "version": "1",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .kiro/hooks/capture-screens.ps1"
+  }
+}

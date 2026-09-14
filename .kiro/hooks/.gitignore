@@ -3,3 +3,9 @@ logs/*.log
 screenshots/out/
 screenshots/node_modules/
 screenshots/package-lock.json
+
+# hook 정의는 .kiro.hook 형식만 사용한다.
+# 구형식 {"version":"v1","hooks":[...]} json 이 다시 생기면 Kiro 패널에 중복으로 보이므로 무시한다.
+# (단, Playwright 의존성 정의인 screenshots/package.json 은 예외로 추적한다)
+*.json
+!screenshots/package.json
