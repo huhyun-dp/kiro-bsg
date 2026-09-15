@@ -22,6 +22,10 @@ spring:
     database-change-log-lock-table: databasechangeloglock
   thymeleaf:
     cache: ${THYMELEAF_CACHE:true}
+  servlet:
+    multipart:
+      max-file-size: 10485760B
+      max-request-size: 22020096B
 
 mybatis:
   mapper-locations: classpath:/mapper/*.xml
@@ -50,3 +54,6 @@ server:
 app:
   security:
     bcrypt-strength: ${BCRYPT_STRENGTH:12}
+  inquiry-attachment:
+    storage-path: ${INQUIRY_ATTACHMENT_STORAGE_PATH:}
+    cleanup-on-startup: ${INQUIRY_ATTACHMENT_CLEANUP_ON_STARTUP:false}

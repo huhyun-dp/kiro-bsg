@@ -11,3 +11,6 @@ spring:
 app:
   security:
     bcrypt-strength: 4
+  inquiry-attachment:
+    storage-path: ${java.io.tmpdir}/session-auth-test-attachments
+    cleanup-on-startup: false

@@ -970,6 +970,18 @@ a:focus-visible {
     text-decoration: underline;
 }
 
+.inquiry-attachment-indicator {
+    display: inline-flex;
+    margin-left: 8px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: var(--background);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 /* Pagination */
 .inquiry-pagination {
     display: flex;
@@ -1065,7 +1077,45 @@ a:focus-visible {
 .inquiry-detail-actions {
     margin-top: 20px;
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.inquiry-manage-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inquiry-edit-button,
+.inquiry-delete-button {
+    display: grid;
+    height: 40px;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    padding: 0 18px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.inquiry-edit-button:hover {
+    background: var(--background);
+}
+
+.inquiry-delete-button {
+    border-color: var(--error);
+    color: var(--error);
+}
+
+.inquiry-delete-button:hover {
+    background: var(--error-bg);
 }
 
 .inquiry-back-button {
@@ -1143,6 +1193,44 @@ a:focus-visible {
     padding: 0 28px;
 }
 
+.inquiry-attachment-guidance,
+.inquiry-attachment-list {
+    font-size: 12px;
+}
+
+.inquiry-existing-attachments {
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--background);
+}
+
+.inquiry-existing-attachments h2 {
+    margin: 0 0 10px;
+    font-size: 14px;
+}
+
+.inquiry-attachment-list {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--muted);
+}
+
+.inquiry-attachment-list li + li {
+    margin-top: 8px;
+}
+
+.inquiry-existing-attachments label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.inquiry-existing-attachments input {
+    margin: 0;
+}
+
 @media (max-width: 600px) {
     .inquiry-table .col-view,
     .inquiry-table .col-no {
@@ -1160,6 +1248,29 @@ a:focus-visible {
 
     .inquiry-submit-button,
     .inquiry-back-button {
+        width: 100%;
+    }
+
+    .inquiry-detail-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .inquiry-manage-actions {
+        width: 100%;
+    }
+
+    .inquiry-edit-button,
+    .inquiry-delete-button {
+        flex: 1;
+    }
+
+    .inquiry-manage-actions form {
+        flex: 1;
+        display: flex;
+    }
+
+    .inquiry-manage-actions form .inquiry-delete-button {
         width: 100%;
     }
 }

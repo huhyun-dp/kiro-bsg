@@ -6,6 +6,7 @@ public record InquirySummary(
         Long id,
         String title,
         Long viewCount,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        boolean hasAttachments
 ) {
 }

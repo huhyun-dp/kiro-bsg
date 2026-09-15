@@ -4,7 +4,7 @@ import java.util.List;
 
 public interface InquiryQueryRepository {
 
-    List<InquiryQueryResult> findPage(int offset, int limit);
+    List<InquiryListQueryResult> findPage(int offset, int limit);
 
     long countAll();
 }

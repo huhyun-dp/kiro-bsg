@@ -49,6 +49,33 @@ class InquirySchemaMigrationTest {
                 String.class)).isEqualTo("MARK_RAN");
     }
 
+    @Test
+    void preservesFiveAttachmentsAtTwentyMiBAndTheirDownloadMetadataAcrossIdempotentMigration() throws Exception {
+        migrate();
+        insertMember();
+        insertInquiry();
+
+        String firstStorageKey = UUID.randomUUID().toString();
+        for (int index = 1; index <= 5; index++) {
+            String storageKey = index == 1 ? firstStorageKey : UUID.randomUUID().toString();
+            jdbc.update("INSERT INTO inquiry_attachments "
+                            + "(inquiry_id, storage_key, original_filename, content_type, file_size, created_at) "
+                            + "VALUES (1, ?, ?, 'application/pdf', ?, CURRENT_TIMESTAMP)",
+                    storageKey, "legacy-" + index + ".pdf", 4L * 1024 * 1024);
+        }
+
+        migrate();
+
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inquiry_attachments WHERE inquiry_id = 1", Integer.class))
+                .isEqualTo(5);
+        assertThat(jdbc.queryForObject("SELECT SUM(file_size) FROM inquiry_attachments WHERE inquiry_id = 1", Long.class))
+                .isEqualTo(20L * 1024 * 1024);
+        assertThat(jdbc.queryForObject("SELECT storage_key FROM inquiry_attachments WHERE original_filename = 'legacy-1.pdf'",
+                String.class)).isEqualTo(firstStorageKey);
+        assertThat(jdbc.queryForObject("SELECT content_type FROM inquiry_attachments WHERE original_filename = 'legacy-1.pdf'",
+                String.class)).isEqualTo("application/pdf");
+    }
+
     private void migrate() throws Exception {
         SpringLiquibase liquibase = new SpringLiquibase();
         liquibase.setDataSource(dataSource);

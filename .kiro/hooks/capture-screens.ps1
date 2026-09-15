@@ -26,11 +26,15 @@ $templateScreenMap = @{
   'src/main/resources/templates/members.html'        = 'members'
   'src/main/resources/templates/inquiry/list.html'   = 'inquiries'
   'src/main/resources/templates/inquiry/form.html'   = 'inquiry-new'
-  'src/main/resources/templates/inquiry/detail.html' = 'inquiries'   # 상세는 목록 경유로 대체 캡처
+  'src/main/resources/templates/inquiry/detail.html' = 'inquiry-detail'
   'src/main/resources/templates/admin/access.html'   = 'admin-access'
 }
-# 공통 레이아웃이 바뀌면 모든 화면에 영향 → 대표 화면 전체를 대상으로 한다.
-$layoutAffectedScreens = @('members', 'inquiries', 'inquiry-new', 'admin-access')
+# 공통 레이아웃/공통 CSS 가 바뀌면 모든 화면에 영향 → 대표 화면 전체를 대상으로 한다.
+$layoutAffectedScreens = @('members', 'inquiries', 'inquiry-new', 'inquiry-detail', 'admin-access')
+$globalAffectingFiles = @(
+  'src/main/resources/templates/fragments/layout.html',
+  'src/main/resources/static/css/app.css'
+)
 
 # 작업(변경)된 템플릿을 git 으로 감지 (스테이징 + 미스테이징 + 미추적)
 function Get-ChangedScreenKeys {
@@ -48,7 +52,7 @@ function Get-ChangedScreenKeys {
   $keys = New-Object System.Collections.Generic.List[string]
   foreach ($f in $changed) {
     $norm = $f.Replace('\', '/')
-    if ($norm -eq 'src/main/resources/templates/fragments/layout.html') {
+    if ($globalAffectingFiles -contains $norm) {
       $layoutAffectedScreens | ForEach-Object { $keys.Add($_) }
     } elseif ($templateScreenMap.ContainsKey($norm)) {
       $keys.Add($templateScreenMap[$norm])

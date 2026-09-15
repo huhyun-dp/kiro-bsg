@@ -28,12 +28,13 @@
     <main class="member-main">
         <section class="member-page-header">
             <p class="member-eyebrow">INQUIRY</p>
-            <h1>문의 작성</h1>
-            <p>문의 내용을 입력해 주세요.</p>
+            <h1 th:text="${formMode == 'edit'} ? '문의 수정' : '문의 작성'">문의 작성</h1>
+            <p th:text="${formMode == 'edit'} ? '문의 내용을 수정해 주세요.' : '문의 내용을 입력해 주세요.'">문의 내용을 입력해 주세요.</p>
         </section>
 
         <section class="inquiry-form-card" aria-label="문의 작성 폼">
-            <form th:action="@{/inquiries}" method="post" th:object="${inquiryForm}" novalidate>
+            <form th:action="${formMode == 'edit'} ? @{/inquiries/{id}/edit(id=${inquiryId})} : @{/inquiries}"
+                  method="post" enctype="multipart/form-data" th:object="${inquiryForm}" novalidate>
                 <input type="hidden" name="_csrf" th:value="${_csrf}">
 
                 <div class="field-group">
@@ -60,9 +61,39 @@
                        th:errors="*{content}" role="alert"></p>
                 </div>
 
+                <section class="field-group inquiry-existing-attachments" th:if="${formMode == 'edit'}"
+                         aria-labelledby="existing-attachments-title">
+                    <h2 id="existing-attachments-title">기존 첨부파일</h2>
+                    <ul class="inquiry-attachment-list" th:if="${!#lists.isEmpty(existingAttachments)}">
+                        <li th:each="attachment : ${existingAttachments}">
+                            <label>
+                                <input type="checkbox" name="deleteAttachmentIds" th:value="${attachment.id}"
+                                       th:checked="${inquiryForm.deleteAttachmentIds != null and inquiryForm.deleteAttachmentIds.contains(attachment.id)}">
+                                <span th:text="${attachment.originalFilename + ' (' + attachment.fileSize + ' bytes)'}">attachment.pdf (0 bytes)</span>
+                                <span>삭제</span>
+                            </label>
+                        </li>
+                    </ul>
+                    <p class="inquiry-attachment-list" th:if="${#lists.isEmpty(existingAttachments)}">기존 첨부파일이 없습니다.</p>
+                </section>
+
+                <div class="field-group">
+                    <label for="attachments" th:text="${formMode == 'edit'} ? '새 첨부파일 추가' : '첨부파일'">첨부파일</label>
+                    <div class="input-wrap" th:classappend="${#fields.hasErrors('attachments')} ? 'is-invalid'">
+                        <input id="attachments" type="file" th:field="*{attachments}" multiple
+                               accept=".pdf,.png,.jpg,.jpeg">
+                    </div>
+                    <p class="field-hint inquiry-attachment-guidance">PDF, PNG, JPEG만 가능하며 파일당 최대 10 MiB, 최종 최대 5개 및 최종 전체 20 MiB까지 첨부할 수 있습니다.</p>
+                    <p class="field-error" th:if="${#fields.hasErrors('attachments')}"
+                       th:errors="*{attachments}" role="alert"></p>
+                </div>
+
                 <div class="inquiry-form-actions">
-                    <a class="inquiry-back-button" th:href="@{/inquiries}" href="/inquiries">취소</a>
-                    <button class="primary-button inquiry-submit-button" type="submit">등록</button>
+                    <a class="inquiry-back-button"
+                       th:href="${formMode == 'edit'} ? @{/inquiries/{id}(id=${inquiryId})} : @{/inquiries}"
+                       href="/inquiries">취소</a>
+                    <button class="primary-button inquiry-submit-button" type="submit"
+                            th:text="${formMode == 'edit'} ? '수정' : '등록'">등록</button>
                 </div>
             </form>
         </section>

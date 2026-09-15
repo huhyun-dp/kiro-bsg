@@ -29,7 +29,26 @@
         SELECT i.id, m.name AS author_name, i.title, i.content, i.view_count, i.created_at
         FROM inquiries i
         JOIN members m ON m.id = i.member_id
-        WHERE i.id = #{id}
+        WHERE i.id = #{id} AND i.deleted = FALSE
     </select>
+
+    <select id="findOwnerId" resultType="long">
+        SELECT member_id FROM inquiries WHERE id = #{id} AND deleted = FALSE
+    </select>
+
+    <!-- The edit service calls this first inside its write transaction to serialize the inquiry aggregate. -->
+    <select id="findOwnerIdForUpdate" resultType="long">
+        SELECT member_id FROM inquiries WHERE id = #{id} AND deleted = FALSE FOR UPDATE
+    </select>
+
+    <update id="updateContent">
+        UPDATE inquiries
+        SET title = #{title}, content = #{content}
+        WHERE id = #{id} AND deleted = FALSE
+    </update>
+
+    <update id="softDelete">
+        UPDATE inquiries SET deleted = TRUE WHERE id = #{id} AND deleted = FALSE
+    </update>
 
 </mapper>

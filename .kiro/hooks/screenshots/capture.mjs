@@ -56,6 +56,22 @@ const CATALOG = {
     description: '문의 작성 화면',
     needsAdmin: true,
   },
+  'inquiry-detail': {
+    description: '문의 상세 화면',
+    needsAdmin: true,
+    // 상세 화면은 문의 데이터가 있어야 하므로, 캡처용 문의를 하나 등록한 뒤 그 상세로 이동한다.
+    navigate: async (page, base) => {
+      await page.goto(`${base}/inquiries/new`, { waitUntil: 'networkidle' });
+      await page.fill('#title', '캡처용 문의');
+      await page.fill('#content', '화면 캡처를 위해 등록한 예시 문의입니다.');
+      // 헤더의 로그아웃 버튼도 type=submit 이므로, 반드시 문의 폼 내부의 등록 버튼만 클릭한다.
+      await Promise.all([
+        page.waitForLoadState('networkidle'),
+        page.click('.inquiry-form-card button[type="submit"]'),
+      ]);
+      // 등록 성공 시 상세 화면으로 리다이렉트된다.
+    },
+  },
   'admin-access': {
     url: '/admin/access',
     description: '권한 관리 화면',
@@ -95,7 +111,7 @@ async function loginAsAdmin(page) {
   await page.fill('#password', password);
   await Promise.all([
     page.waitForLoadState('networkidle'),
-    page.click('button[type="submit"]'),
+    page.click('.auth-form button[type="submit"]'),
   ]);
 }
 
@@ -123,9 +139,22 @@ const run = async () => {
       await loginAsAdmin(page);
       loggedIn = true;
     }
-    await page.goto(`${baseUrl}${def.url}`, { waitUntil: 'networkidle' });
+    if (def.navigate) {
+      await def.navigate(page, baseUrl);
+    } else {
+      await page.goto(`${baseUrl}${def.url}`, { waitUntil: 'networkidle' });
+    }
     if (def.prepare) {
       await def.prepare(page);
+    }
+    // 로그인이 필요한 화면인데 로그인 페이지로 튕겼다면 세션이 끊긴 것이므로 실패로 처리한다.
+    // (그냥 캡처하면 로그인 화면이 '성공'으로 기록되어 오탐이 된다)
+    if (def.needsAdmin && new URL(page.url()).pathname === '/login') {
+      seq += 1;
+      shots.push({ name: key, description: def.description, ok: false,
+        error: '로그인 페이지로 리다이렉트됨(세션 없음)' });
+      console.log(`[FAIL] ${key} — ${def.description}: 로그인 페이지로 리다이렉트됨`);
+      continue;
     }
     await shoot(page, key, def.description);
   }

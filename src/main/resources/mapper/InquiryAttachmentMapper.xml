@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lxpantos.auth.adapter.out.persistence.mybatis.InquiryAttachmentMapper">
+    <resultMap id="attachmentMap" type="com.lxpantos.auth.adapter.out.persistence.mybatis.InquiryAttachmentPersistenceModel">
+        <id property="id" column="id"/><result property="inquiryId" column="inquiry_id"/>
+        <result property="storageKey" column="storage_key"/><result property="originalFilename" column="original_filename"/>
+        <result property="contentType" column="content_type"/><result property="fileSize" column="file_size"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+    <insert id="insert" parameterType="com.lxpantos.auth.adapter.out.persistence.mybatis.InquiryAttachmentPersistenceModel" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO inquiry_attachments (inquiry_id, storage_key, original_filename, content_type, file_size, created_at)
+        VALUES (#{inquiryId}, #{storageKey}, #{originalFilename}, #{contentType}, #{fileSize}, #{createdAt})
+    </insert>
+    <select id="findByInquiryId" resultMap="attachmentMap">
+        SELECT a.id, a.inquiry_id, a.storage_key, a.original_filename, a.content_type, a.file_size, a.created_at
+        FROM inquiry_attachments a JOIN inquiries i ON i.id = a.inquiry_id
+        WHERE a.inquiry_id = #{inquiryId} AND i.deleted = FALSE ORDER BY a.id ASC
+    </select>
+    <select id="findByInquiryIdAndId" resultMap="attachmentMap">
+        SELECT a.id, a.inquiry_id, a.storage_key, a.original_filename, a.content_type, a.file_size, a.created_at
+        FROM inquiry_attachments a JOIN inquiries i ON i.id = a.inquiry_id
+        WHERE a.inquiry_id = #{inquiryId} AND a.id = #{attachmentId} AND i.deleted = FALSE
+    </select>
+    <delete id="deleteByInquiryIdAndId">
+        DELETE FROM inquiry_attachments
+        WHERE inquiry_id = #{inquiryId} AND id = #{attachmentId}
+    </delete>
+    <select id="findAllStorageKeys" resultType="string">SELECT storage_key FROM inquiry_attachments</select>
+</mapper>

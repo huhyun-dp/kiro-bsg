@@ -1,7 +1,7 @@
 package com.lxpantos.auth.adapter.out.persistence.mybatis;
 
 import com.lxpantos.auth.application.port.out.InquiryQueryRepository;
-import com.lxpantos.auth.application.port.out.InquiryQueryResult;
+import com.lxpantos.auth.application.port.out.InquiryListQueryResult;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,7 +16,7 @@ public class MyBatisInquiryQueryRepository implements InquiryQueryRepository {
     }
 
     @Override
-    public List<InquiryQueryResult> findPage(int offset, int limit) {
+    public List<InquiryListQueryResult> findPage(int offset, int limit) {
         return inquiryQueryMapper.findPage(offset, limit);
     }
 

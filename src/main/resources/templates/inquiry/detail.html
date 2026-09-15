@@ -50,10 +50,28 @@
                 </dl>
             </header>
             <div class="inquiry-detail-content" th:text="${inquiry.content}">내용</div>
+            <section class="inquiry-attachments" th:if="${!#lists.isEmpty(inquiry.attachments)}" aria-label="첨부파일">
+                <h3>첨부파일</h3>
+                <ul class="inquiry-attachment-list">
+                    <li th:each="attachment : ${inquiry.attachments}">
+                        <a th:href="@{/inquiries/{inquiryId}/attachments/{attachmentId}/download(inquiryId=${inquiry.id},attachmentId=${attachment.id})}"
+                           th:text="${attachment.originalFilename}">attachment.pdf</a>
+                        <span th:text="${attachment.fileSize + ' bytes'}">0 bytes</span>
+                    </li>
+                </ul>
+            </section>
         </article>
 
         <div class="inquiry-detail-actions">
             <a class="inquiry-back-button" th:href="@{/inquiries}" href="/inquiries">목록으로</a>
+            <div class="inquiry-manage-actions" th:if="${canManage}">
+                <a class="inquiry-edit-button" th:href="@{/inquiries/{id}/edit(id=${inquiry.id})}">수정</a>
+                <form th:action="@{/inquiries/{id}/delete(id=${inquiry.id})}" method="post"
+                      onsubmit="return confirm('이 문의를 삭제할까요? 삭제하면 목록에서 사라집니다.');">
+                    <input type="hidden" name="_csrf" th:value="${_csrf}">
+                    <button class="inquiry-delete-button" type="submit">삭제</button>
+                </form>
+            </div>
         </div>
     </main>
 </div>

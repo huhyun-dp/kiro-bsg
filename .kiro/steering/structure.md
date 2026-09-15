@@ -243,3 +243,17 @@ adapter/out ←  application/port/out  ←  application/service
 
 > 세 폴더 모두 `<도메인>-<대상/기능>` 패턴으로 통일되어 있다. 향후 신규 Spec 도 반드시 이 패턴을 따른다.
 > 참고: 초기에는 `as-is-system-analysis`/`access-management`/`inquiry` 로 명명이 제각각이었으나 본 컨벤션에 맞춰 rename 되었다.
+
+### 문의 첨부파일 구성
+
+- `domain/inquiry`의 `InquiryAttachment`, `AttachmentMediaType`은 파일 경로나 Spring 타입 없이 메타데이터만 표현한다.
+- `application/port`의 첨부 메타데이터 저장·조회·비공개 저장소 포트와 `InquiryAttachmentDownloadService`가 등록 보상·다운로드 소속 검증을 분리한다.
+- `adapter/out/storage/LocalInquiryAttachmentStorage`은 staging/final 디렉터리, UUID 저장 키, root containment와 스트리밍을 담당하며, MyBatis XML 매퍼는 `inquiry_attachments` 메타데이터만 저장한다.
+
+
+### 문의 작성자 편집 확장
+
+- `application/port/in`에는 `UpdateInquiryUseCase`, `UpdateInquiryCommand`, `UpdateInquiryResult`가 있고, `InquiryService`가 기존 첨부 query/repository/storage 및 `TransactionRunner`를 조합해 편집을 수행한다.
+- `InquiryController`는 `GET /inquiries/{id}/edit`와 multipart `POST /inquiries/{id}/edit`를 제공한다. `InquiryForm`은 새 `attachments`와 `deleteAttachmentIds`를 바인딩하되 Spring multipart 타입은 application/domain 경계 밖에 둔다.
+- MyBatis `InquiryMapper`의 write-time owner 조회(`FOR UPDATE`)가 같은 문의의 편집 aggregate를 직렬화하며, attachment metadata는 `(inquiryId, attachmentId)` 소속을 검증해 삭제한다. `LocalInquiryAttachmentStorage`의 UUID private-file 저장/삭제와 서비스의 보상 정책은 DB 변경과 구분해 처리한다.
+- 이 확장의 테스트·빌드 검증은 여기서 주장하지 않는다. 9.7.8과 9.7.9는 사용자 요청으로 건너뛰었다.

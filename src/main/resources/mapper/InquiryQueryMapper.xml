@@ -4,27 +4,35 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.lxpantos.auth.adapter.out.persistence.mybatis.InquiryQueryMapper">
 
-    <resultMap id="inquiryQueryResultMap" type="com.lxpantos.auth.application.port.out.InquiryQueryResult">
+    <resultMap id="inquiryListQueryResultMap" type="com.lxpantos.auth.application.port.out.InquiryListQueryResult">
         <constructor>
-            <idArg column="id"          javaType="java.lang.Long"/>
-            <arg   column="author_name" javaType="java.lang.String"/>
-            <arg   column="title"       javaType="java.lang.String"/>
-            <arg   column="content"     javaType="java.lang.String"/>
-            <arg   column="view_count"  javaType="java.lang.Long"/>
-            <arg   column="created_at"  javaType="java.time.LocalDateTime"/>
+            <idArg column="id"              javaType="java.lang.Long"/>
+            <arg   column="title"           javaType="java.lang.String"/>
+            <arg   column="view_count"      javaType="java.lang.Long"/>
+            <arg   column="created_at"      javaType="java.time.LocalDateTime"/>
+            <arg   column="has_attachments" javaType="_boolean"/>
         </constructor>
     </resultMap>
 
-    <select id="findPage" resultMap="inquiryQueryResultMap">
-        SELECT i.id, m.name AS author_name, i.title, i.content, i.view_count, i.created_at
+    <select id="findPage" resultMap="inquiryListQueryResultMap">
+        SELECT i.id,
+               i.title,
+               i.view_count,
+               i.created_at,
+               EXISTS (
+                   SELECT 1
+                   FROM inquiry_attachments a
+                   WHERE a.inquiry_id = i.id
+               ) AS has_attachments
         FROM inquiries i
         JOIN members m ON m.id = i.member_id
+        WHERE i.deleted = FALSE
         ORDER BY i.created_at DESC, i.id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="countAll" resultType="long">
-        SELECT COUNT(*) FROM inquiries
+        SELECT COUNT(*) FROM inquiries WHERE deleted = FALSE
     </select>
 
 </mapper>

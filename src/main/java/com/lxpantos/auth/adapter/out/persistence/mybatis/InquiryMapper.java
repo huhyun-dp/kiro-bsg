@@ -14,4 +14,14 @@ public interface InquiryMapper {
     void incrementViewCount(@Param("id") Long id);
 
     Optional<InquiryQueryResult> findById(@Param("id") Long id);
+
+    Optional<Long> findOwnerId(@Param("id") Long id);
+
+    Optional<Long> findOwnerIdForUpdate(@Param("id") Long id);
+
+    int updateContent(@Param("id") Long id,
+                      @Param("title") String title,
+                      @Param("content") String content);
+
+    int softDelete(@Param("id") Long id);
 }
