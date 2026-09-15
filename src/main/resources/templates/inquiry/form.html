@@ -33,6 +33,23 @@
         </section>
 
         <section class="inquiry-form-card" aria-label="문의 작성 폼">
+            <section class="field-group inquiry-existing-attachments" th:if="${formMode == 'edit'}"
+                     aria-labelledby="existing-attachments-title">
+                <h2 id="existing-attachments-title">기존 첨부파일</h2>
+                <ul class="inquiry-attachment-list" th:if="${!#lists.isEmpty(existingAttachments)}">
+                    <li th:each="attachment : ${existingAttachments}">
+                        <span th:text="${attachment.originalFilename + ' (' + @fileSizeFormatter.format(attachment.fileSize) + ')'}">attachment.pdf (0 B)</span>
+                        <form class="inquiry-attachment-delete-form"
+                              th:action="@{/inquiries/{id}/attachments/{attachmentId}/delete(id=${inquiryId},attachmentId=${attachment.id})}"
+                              method="post">
+                            <input type="hidden" name="_csrf" th:value="${_csrf}">
+                            <button class="inquiry-attachment-delete-button" type="submit">삭제</button>
+                        </form>
+                    </li>
+                </ul>
+                <p class="inquiry-attachment-list" th:if="${#lists.isEmpty(existingAttachments)}">기존 첨부파일이 없습니다.</p>
+            </section>
+
             <form th:action="${formMode == 'edit'} ? @{/inquiries/{id}/edit(id=${inquiryId})} : @{/inquiries}"
                   method="post" enctype="multipart/form-data" th:object="${inquiryForm}" novalidate>
                 <input type="hidden" name="_csrf" th:value="${_csrf}">
@@ -60,22 +77,6 @@
                     <p class="field-error" th:if="${#fields.hasErrors('content')}"
                        th:errors="*{content}" role="alert"></p>
                 </div>
-
-                <section class="field-group inquiry-existing-attachments" th:if="${formMode == 'edit'}"
-                         aria-labelledby="existing-attachments-title">
-                    <h2 id="existing-attachments-title">기존 첨부파일</h2>
-                    <ul class="inquiry-attachment-list" th:if="${!#lists.isEmpty(existingAttachments)}">
-                        <li th:each="attachment : ${existingAttachments}">
-                            <label>
-                                <input type="checkbox" name="deleteAttachmentIds" th:value="${attachment.id}"
-                                       th:checked="${inquiryForm.deleteAttachmentIds != null and inquiryForm.deleteAttachmentIds.contains(attachment.id)}">
-                                <span th:text="${attachment.originalFilename + ' (' + attachment.fileSize + ' bytes)'}">attachment.pdf (0 bytes)</span>
-                                <span>삭제</span>
-                            </label>
-                        </li>
-                    </ul>
-                    <p class="inquiry-attachment-list" th:if="${#lists.isEmpty(existingAttachments)}">기존 첨부파일이 없습니다.</p>
-                </section>
 
                 <div class="field-group">
                     <label for="attachments" th:text="${formMode == 'edit'} ? '새 첨부파일 추가' : '첨부파일'">첨부파일</label>

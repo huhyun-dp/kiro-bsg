@@ -6,7 +6,9 @@
 
 이 문서는 **BSG Partners** 회원관리 웹 애플리케이션의 문의 요청(Inquiry) 기능 기준이다. 로그인한 회원은 문의를 작성·목록 조회·상세 조회할 수 있고, PDF/PNG/JPEG 첨부파일을 비공개 저장소에 등록·다운로드할 수 있다.
 
-작성자 본인의 문의 편집이 구현되어 있다. 편집은 기존 첨부를 기본 보존하고, 새 파일 추가와 `deleteAttachmentIds`에 의한 개별 삭제를 하나의 multipart 요청으로 처리한다. 최종 첨부는 최대 5개·20 MiB, 새 파일 하나는 최대 10 MiB다.
+작성자 본인의 문의 편집이 구현되어 있다. 편집 화면에서 기존 첨부는 기본 보존되며, 개별 삭제는 별도의 CSRF 보호 요청(`POST /inquiries/{id}/attachments/{attachmentId}/delete`)으로 **즉시** 수행한다. 제목·내용 수정과 새 파일 추가는 편집 POST(`POST /inquiries/{id}/edit`)로 처리한다. 최종 첨부는 최대 5개·20 MiB, 새 파일 하나는 최대 10 MiB다.
+
+> **개별 삭제 방식 변경(이전 설계 대체):** 이전에는 편집 multipart 요청에 `deleteAttachmentIds`를 실어 제목·내용 수정·새 파일 추가와 함께 지연(deferred) 삭제했다. 본 스펙은 이를 **편집 화면 내 즉시(per-attachment) 삭제 엔드포인트**로 대체한다. `deleteAttachmentIds` 기반 지연 삭제 서술은 더 이상 유효하지 않으며, 아래 요구사항이 최종 기준이다.
 
 - ✅ 구현됨(이 문서 갱신 시 코드 정적 검토 기준)
 - ⚠ 구현됐으나 9.7.8·9.7.9가 사용자 요청으로 건너뛰어 자동 검증되지 않음
@@ -96,13 +98,16 @@
 10. IF attachment가 없거나 요청 inquiry에 속하지 않거나 저장 파일이 없으면, THEN THE System SHALL 저장 키·경로·내부 오류를 노출하지 않는 동일한 HTTP 404를 반환한다. ✅
 11. THE System SHALL 등록·메타데이터 저장 실패 시 생성된 staging/final 파일을 보상 삭제하고, DB 비참조 UUID 파일의 안전한 운영 정리 경로를 제공한다. ✅
 12. WHEN 인증된 작성자가 `GET /inquiries/{id}/edit`에 접근하면, THE System SHALL 제목·내용과 기존 첨부 목록을 포함한 편집 폼을 표시한다. 기존 첨부는 명시적 삭제가 없으면 보존되어야 한다. ✅ (자동 검증 미실시)
-13. WHEN 인증된 작성자가 문의 편집을 제출하면, THE System SHALL 제목·내용 수정, 신규 첨부 추가, 기존 첨부의 개별 삭제를 하나의 편집 작업으로 처리한다. 신규 첨부·삭제가 없어도 본문 편집은 가능해야 한다. ✅ (자동 검증 미실시)
-14. THE System SHALL 편집 결과의 첨부 수가 5개 이하이고, 보존되는 파일과 새 업로드 파일을 합친 총 크기가 20 MiB 이하인지 서버에서 검증한다. 삭제 대상으로 지정된 정상 소속 파일은 최종 개수·크기 계산에서 제외한다. ✅ (자동 검증 미실시)
+13. WHEN 인증된 작성자가 문의 편집을 제출하면, THE System SHALL 제목·내용 수정과 신규 첨부 추가를 하나의 편집 작업(`POST /inquiries/{id}/edit`)으로 처리한다. 신규 첨부가 없어도 본문 편집은 가능해야 한다. 기존 첨부의 개별 삭제는 이 편집 요청이 아니라 별도의 즉시 삭제 엔드포인트(요구사항 21)로 처리한다. ✅ (자동 검증 미실시)
+14. THE System SHALL 편집 결과의 첨부 수가 5개 이하이고, 현재 저장된 기존 첨부와 새 업로드 파일을 합친 총 크기가 20 MiB 이하인지 서버에서 검증한다. 편집 POST는 삭제를 수행하지 않으므로, 개수·크기 계산의 기준은 요청 시점에 실제로 저장되어 있는 기존 첨부다. 🔶
 15. THE System SHALL 편집 요청에서 신규 파일마다 10 MiB, 파일 수, 총 요청 크기, 파일명, 확장자·선언 MIME·magic bytes를 서버 측에서 검증한다. HTML `accept`, CSS, 클라이언트 파일 목록은 보조 UX이며 권한 또는 제한 검증을 대체할 수 없다. ✅ (자동 검증 미실시)
-16. THE System SHALL 작성자 본인만 `/inquiries/{id}/edit` 및 첨부 삭제를 수행하도록 서버에서 검증한다. 미인증 사용자는 로그인 흐름으로, 인증됐지만 작성자가 아닌 사용자는 권한 거부 응답으로 처리하며, 어느 경우에도 파일을 변경·삭제하지 않는다. ✅ (자동 검증 미실시)
-17. THE System SHALL 편집·개별 첨부 삭제를 상태 변경 요청으로 취급하고 CSRF 보호를 적용한다. ✅ (자동 검증 미실시)
-18. IF 편집 중 검증, 파일 I/O 또는 DB 저장에 실패하면, THEN THE System SHALL 문의·기존 첨부 메타데이터·기존 파일을 변경하지 않고 신규 staging/final 파일을 보상 삭제한다. 삭제 대상 파일은 DB 커밋 후에만 제거하며 실패는 보안 로그에 남긴다. ✅ (자동 검증 미실시)
+16. THE System SHALL 작성자 본인만 `/inquiries/{id}/edit` 및 개별 첨부 삭제(`/inquiries/{id}/attachments/{attachmentId}/delete`)를 수행하도록 서버에서 검증한다. 미인증 사용자는 로그인 흐름으로, 인증됐지만 작성자가 아닌 사용자는 권한 거부(403) 응답으로 처리하며, 어느 경우에도 파일을 변경·삭제하지 않는다. ✅ (자동 검증 미실시)
+17. THE System SHALL 편집·개별 첨부 삭제를 모두 상태 변경 POST 요청으로 취급하고 CSRF 보호를 적용한다. ✅ (자동 검증 미실시)
+18. IF 편집 중 검증, 파일 I/O 또는 DB 저장에 실패하면, THEN THE System SHALL 문의·기존 첨부 메타데이터·기존 파일을 변경하지 않고 신규 staging/final 파일을 보상 삭제한다. 개별 삭제 요청에서 삭제 대상 파일은 DB 커밋 후에만 제거하며 제거 실패는 보안 로그와 orphan reconciliation 대상으로 남긴다. ✅ (자동 검증 미실시)
 19. THE System SHALL 첨부 안내 문구와 첨부파일 목록 UI에만 `12px` 이상의 접근 가능한 글자 크기를 적용하고, 그 외 문의 화면의 글자 크기는 변경하지 않는다. ✅ (자동 검증 미실시)
+20. THE System SHALL 문의 상세 및 편집 화면의 기존 첨부 목록에 표시하는 첨부 크기를 사람이 읽기 쉬운 이진(1024 기반) 단위(B/KB/MB/…)로 크기 규모에 따라 선택해 표시하되, KB 이상은 소수점 1자리, 바이트 단위는 정수로 나타낸다. 이 변환은 표시 전용이며 저장된 바이트 값은 변경하지 않고, 저장 키·실제 파일 경로를 노출하지 않는다. 🔶
+21. WHEN 인증된 작성자가 편집 화면에서 특정 첨부의 삭제를 요청하면, THE System SHALL `POST /inquiries/{id}/attachments/{attachmentId}/delete`로 해당 첨부 하나만 즉시 삭제한다. THE System SHALL 삭제 전 `(inquiryId, attachmentId)` 소속을 검증하고, 메타데이터 삭제(DB)와 커밋 후 저장 파일 제거를 수행하며, 성공 시 `GET /inquiries/{id}/edit`로 리다이렉트하여 편집 화면을 갱신한다. THE System SHALL 마지막 첨부의 삭제도 허용한다(첨부 0개 상태 허용). 🔶
+22. IF 개별 삭제 요청의 첨부가 없거나 요청 문의에 속하지 않으면, THEN THE System SHALL 저장 키·경로·내부 오류를 노출하지 않는 일반 HTTP 404를 반환한다. IF 커밋 후 저장 파일 제거가 실패하면, THEN THE System SHALL 경로를 노출하지 않고 보안 로그·orphan reconciliation 대상으로 남기되 DB 삭제 결과는 유지한다. 🔶
 
 ### Requirement 6: 문의 목록의 첨부 표시 (예정)
 
@@ -128,9 +133,11 @@
 | IA-01 | 허용 타입은 PDF, PNG, JPEG이며 확장자·선언 MIME·magic bytes가 일치해야 한다 | ✅ |
 | IA-02 | 각 업로드 파일은 최대 10 MiB다 | ✅ |
 | IA-03 | 문의의 저장 첨부 수는 최대 5개, 저장 후 전체 첨부 크기는 최대 20 MiB다 | ✅ (자동 검증 미실시) |
-| IA-04 | 편집은 기존 첨부를 보존하고, 작성자만 추가·개별 삭제할 수 있다 | ✅ (자동 검증 미실시) |
-| IA-05 | 편집·삭제는 인증·CSRF·서버 권한 검증과 실패 보상을 적용한다 | ✅ (자동 검증 미실시) |
+| IA-04 | 편집은 기존 첨부를 보존하고, 작성자만 새 파일을 추가할 수 있다. 개별 삭제는 편집 화면 내 즉시 삭제 엔드포인트로 처리한다 | ✅ (자동 검증 미실시) |
+| IA-05 | 편집(본문·추가)과 개별 즉시 삭제는 모두 인증·CSRF·서버 권한 검증과 실패 보상/커밋 후 파일 정리를 적용한다 | ✅ (자동 검증 미실시) |
+| IA-08 | 개별 첨부 삭제는 `POST /inquiries/{id}/attachments/{attachmentId}/delete`로 소속 검증 후 즉시 수행하고 편집 화면으로 리다이렉트하며, 마지막 첨부 삭제도 허용한다 | 🔶 |
 | IA-06 | 첨부 안내와 파일 목록만 12px로 축소한다 | ✅ (자동 검증 미실시) |
+| IA-07 | 상세·편집 화면의 첨부 크기는 이진(1024 기반) 단위로 규모에 맞춰 표시하고(KB 이상 소수점 1자리, 바이트는 정수) 표시 전용이며 저장 바이트를 바꾸지 않고 저장 키·경로를 노출하지 않는다 | 🔶 |
 | IL-01 | 문의 목록은 첨부 존재 여부만 접근 가능하게 표시하고, 단일 목록 쿼리로 조회하며 파일 식별자·경로를 노출하지 않는다 | 🔶 |
 
 ## 확인이 필요한 사항
@@ -146,9 +153,9 @@
 
 ## 현재 구현 및 검증 범위
 
-문의 작성·목록·상세, 안전한 첨부 업로드/다운로드와 함께 작성자 본인의 편집이 구현되어 있다. 편집은 `GET /inquiries/{id}/edit` 및 CSRF 보호 multipart `POST /inquiries/{id}/edit`를 사용하며, 제목·내용 변경, retain-by-default 기존 첨부, 신규 파일 추가, `deleteAttachmentIds` 개별 삭제를 한 작업으로 처리한다. 서버는 PDF/PNG/JPEG의 확장자·선언 MIME·magic bytes를 확인하고, 파일당 10 MiB, 최종 5개, 보존분을 포함한 최종 20 MiB를 적용한다. 첨부 안내와 목록에만 12px 스타일을 적용한다.
+문의 작성·목록·상세, 안전한 첨부 업로드/다운로드와 함께 작성자 본인의 편집이 구현되어 있다. 편집은 `GET /inquiries/{id}/edit` 및 CSRF 보호 multipart `POST /inquiries/{id}/edit`를 사용하며, 제목·내용 변경, retain-by-default 기존 첨부, 신규 파일 추가를 한 작업으로 처리한다. 기존 첨부의 개별 삭제는 이 편집 요청이 아니라 별도의 CSRF 보호 즉시 삭제 엔드포인트 `POST /inquiries/{id}/attachments/{attachmentId}/delete`로 처리한다(이전 `deleteAttachmentIds` 지연 삭제 방식을 대체함). 서버는 PDF/PNG/JPEG의 확장자·선언 MIME·magic bytes를 확인하고, 파일당 10 MiB, 최종 5개, 현재 저장분을 포함한 최종 20 MiB를 적용한다. 첨부 안내와 목록에만 12px 스타일을 적용한다.
 
-새 UUID 비공개 파일은 저장·DB 작업 실패 시 보상 삭제한다. 선택 삭제된 기존 파일은 DB 커밋 후 제거하며, 제거 실패는 경로를 드러내지 않고 orphan reconciliation 로그 대상으로 남긴다. 현 `inquiry_attachments`의 행별 metadata schema는 이 aggregate invariant와 호환되므로 edit 전용 Liquibase changeSet은 추가되지 않았고, 기존 metadata·storage key·다운로드는 보존된다.
+새 UUID 비공개 파일은 저장·DB 작업 실패 시 보상 삭제한다. 개별 삭제 엔드포인트는 `(inquiryId, attachmentId)` 소속을 검증한 뒤 메타데이터를 삭제하고, 저장 파일은 DB 커밋 후 제거하며, 제거 실패는 경로를 드러내지 않고 orphan reconciliation 로그 대상으로 남긴다. 마지막 첨부의 삭제(첨부 0개 상태)도 허용한다. 현 `inquiry_attachments`의 행별 metadata schema는 이 aggregate invariant와 호환되므로 edit 전용 Liquibase changeSet은 추가되지 않았고, 기존 metadata·storage key·다운로드는 보존된다.
 
 **예정된 목록 표시 확장:** 문의 목록에는 첨부가 하나 이상인 행만 단순 시각 표시와 스크린 리더용 `첨부파일` 이름을 추가한다. 첨부가 없는 행과 빈 목록에는 표시를 만들지 않는다. 목록 read model은 attachment metadata나 파일 위치를 싣지 않고, 목록 SQL의 `EXISTS` 또는 동등한 집계로 `hasAttachments` boolean만 산출해 N+1 조회를 방지한다.
 

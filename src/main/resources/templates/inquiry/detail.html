@@ -56,7 +56,7 @@
                     <li th:each="attachment : ${inquiry.attachments}">
                         <a th:href="@{/inquiries/{inquiryId}/attachments/{attachmentId}/download(inquiryId=${inquiry.id},attachmentId=${attachment.id})}"
                            th:text="${attachment.originalFilename}">attachment.pdf</a>
-                        <span th:text="${attachment.fileSize + ' bytes'}">0 bytes</span>
+                        <span th:text="${@fileSizeFormatter.format(attachment.fileSize)}">0 B</span>
                     </li>
                 </ul>
             </section>

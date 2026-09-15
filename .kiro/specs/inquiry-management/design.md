@@ -2,28 +2,30 @@
 
 > **Spec:** inquiry-management · **종류:** living spec
 
-## Overview
+## 개요
 
-문의 요청 기능은 로그인한 회원이 문의를 작성하고, 최신순 목록·상세를 조회하며, 검증된 PDF/PNG/JPEG 파일을 비공개 저장소에서 첨부·다운로드하는 기능이다. 기존 첨부 생성/다운로드 구현은 유지한다.
+문의 요청 기능은 로그인한 회원이 문의를 작성하고, 최신순 목록·상세를 조회하며, 검증된 PDF/PNG/JPEG 파일을 비공개 저장소에서 첨부·다운로드하는 기능이다. 기존 첨부 생성·다운로드 구현은 그대로 유지한다.
 
-승인된 확장은 작성자 본인에게 문의 편집을 제공한다. 편집은 기존 첨부를 기본적으로 유지하고, 새 파일을 추가하거나 연결된 파일을 개별 삭제할 수 있다. 최종 첨부는 최대 5개, 총 저장 크기는 최대 20 MiB이며, 새 업로드 파일 하나는 최대 10 MiB다.
+작성자 본인의 문의 편집을 제공한다. 편집 POST는 기존 첨부를 기본 보존하며 제목·내용 수정과 새 파일 추가를 담당한다. 기존 첨부의 개별 삭제는 편집 화면 내에서 **즉시(per-attachment)** 삭제 엔드포인트로 수행한다. 최종 첨부는 최대 5개, 전체 저장 크기는 최대 20 MiB이며, 새 파일 하나는 최대 10 MiB다.
 
-예정된 목록 확장은 첨부가 하나 이상인 문의 행만 식별 가능한 표시를 추가한다. 이 표시는 파일의 존재 여부만 전달하며 attachment ID, storage key, 파일명·경로, 다운로드 URL 또는 기타 attachment metadata를 목록 read model에 추가하지 않는다.
+> **설계 변경(이전 `deleteAttachmentIds` 지연 삭제 대체):** 이전 설계는 편집 multipart 요청에 `deleteAttachmentIds`를 실어 제목·내용·새 파일과 함께 지연 삭제했다. 현재 설계는 개별 삭제를 별도의 CSRF 보호 엔드포인트 `POST /inquiries/{id}/attachments/{attachmentId}/delete`로 분리해 편집 화면에서 즉시 처리한다. 아래 서술은 이 즉시 삭제 방식을 최종 기준으로 한다.
+
+목록 화면에는 첨부가 하나 이상인 문의 행에만 식별용 표시를 추가한다. 이 표시는 첨부 존재 여부만 전달하며, 첨부 ID·저장 키·파일명·경로·다운로드 주소 등 첨부 상세 정보는 목록 조회 모델에 포함하지 않는다.
 
 | 사용자 | 목록·상세·다운로드 | 편집·첨부 삭제 |
 |---|---|---|
-| 미로그인 | 불가 → 로그인 | 불가 → 로그인 |
+| 미로그인 | 불가 → 로그인 이동 | 불가 → 로그인 이동 |
 | 로그인 회원 | 가능 | 불가(작성자 아님) |
 | 문의 작성자 | 가능 | 가능 |
 
-## Architecture
+## 아키텍처
 
-기존 헥사고날 구조와 CQRS 분리를 유지한다. domain은 순수 Java, application service는 Spring 어노테이션 없이 port만 의존한다.
+기존 헥사고날 구조와 CQRS(읽기·쓰기 분리)를 유지한다. 도메인은 순수 Java이고, 애플리케이션 서비스는 Spring 어노테이션 없이 포트에만 의존한다.
 
 ```text
-Browser
-  └─ InquiryController (web adapter; multipart/CSRF/model/response)
-       ├─ CreateInquiryUseCase / UpdateInquiryUseCase
+브라우저
+  └─ InquiryController (웹 어댑터: multipart / CSRF / 모델 / 응답)
+       ├─ CreateInquiryUseCase / UpdateInquiryUseCase / DeleteInquiryAttachmentUseCase
        ├─ InquiryQueryUseCase / DownloadInquiryAttachmentUseCase
        └─ InquiryAttachmentUploadValidator
              ↓
@@ -33,163 +35,186 @@ Browser
        InquiryQueryRepository + InquiryAttachmentQueryRepository
        InquiryAttachmentStorage
              ↓
-       MyBatis metadata adapters + LocalInquiryAttachmentStorage
+       MyBatis 메타데이터 어댑터 + LocalInquiryAttachmentStorage
              ↓
-       MySQL (inquiries, inquiry_attachments) + private storage root
+       MySQL (inquiries, inquiry_attachments) + 비공개 저장소 루트
 ```
 
-편집은 기존 첨부의 데이터와 새 파일의 staging/final 파일을 조정해야 하므로, DB 트랜잭션만으로 파일시스템 원자성을 가정하지 않는다. 신규 파일은 먼저 staging/final 저장 후 DB 작업 실패 시 보상 삭제한다. 기존 첨부 삭제의 실제 파일 제거는 DB 커밋 후에 수행하며, 제거 실패는 보안 로그 및 재조정 대상으로 남긴다. 따라서 검증·DB 실패는 기존 문의/첨부를 보존한다.
+편집 POST는 기존 첨부 데이터와 새 파일의 임시(staging)·최종(final) 파일을 함께 다루므로, DB 트랜잭션만으로 파일시스템의 원자성을 보장한다고 가정하지 않는다. 새 파일은 먼저 저장한 뒤 DB 작업이 실패하면 보상 삭제한다. 따라서 검증 실패나 DB 실패가 발생해도 기존 문의와 첨부는 보존된다.
 
-## HTTP Components and Flows
+개별 첨부 삭제는 별도의 즉시 삭제 엔드포인트로 처리한다. `(inquiryId, attachmentId)` 소속을 검증한 뒤 메타데이터 삭제(DB)를 수행하고, 저장 파일의 실제 제거는 DB 커밋 이후에 수행하며, 제거 실패는 보안 로그와 재조정(reconciliation) 대상으로 남긴다. 커밋 후 파일 제거가 실패해도 메타데이터 삭제 결과는 유지되고 경로는 노출되지 않는다.
+
+## HTTP 경로와 흐름
 
 | 경로 | 메서드 | 인증 | CSRF | 책임 |
 |---|---|---:|---:|---|
 | `/inquiries` | GET | 필요 | - | 목록 |
-| `/inquiries/new` | GET | 필요 | - | 생성 폼 |
-| `/inquiries` | POST multipart | 필요 | 필요 | 문의 및 초기 첨부 생성 |
-| `/inquiries/{id}` | GET | 필요 | - | 상세/조회수 증가 |
+| `/inquiries/new` | GET | 필요 | - | 작성 폼 |
+| `/inquiries` | POST(multipart) | 필요 | 필요 | 문의 및 최초 첨부 생성 |
+| `/inquiries/{id}` | GET | 필요 | - | 상세 조회 / 조회수 증가 |
 | `/inquiries/{id}/edit` | GET | 필요 + 작성자 | - | 편집 폼 |
-| `/inquiries/{id}/edit` | POST multipart | 필요 + 작성자 | 필요 | 제목·내용 수정, 신규 첨부 추가, 선택된 기존 첨부 삭제 |
+| `/inquiries/{id}/edit` | POST(multipart) | 필요 + 작성자 | 필요 | 제목·내용 수정, 신규 첨부 추가 |
+| `/inquiries/{id}/attachments/{attachmentId}/delete` | POST | 필요 + 작성자 | 필요 | 소속 확인 후 개별 첨부 즉시 삭제, 편집 화면으로 리다이렉트 |
 | `/inquiries/{inquiryId}/attachments/{attachmentId}/download` | GET | 필요 | - | 소속 확인 후 스트리밍 다운로드 |
 
-편집 POST는 `deleteAttachmentIds`(0개 이상)를 함께 받아 개별 삭제를 표현한다. 별도 삭제 API는 만들지 않는다. 이 방식은 제목/내용 수정, 새 업로드, 삭제가 하나의 검증·저장 workflow로 처리되도록 하며, 각 삭제 ID는 서버에서 대상 문의 소속을 확인한다.
+편집 POST는 제목·내용 수정과 새 파일 추가만 담당하며 삭제 목록을 받지 않는다(이전 `deleteAttachmentIds` 방식 폐기). 개별 삭제는 전용 엔드포인트 `POST /inquiries/{id}/attachments/{attachmentId}/delete`로 즉시 처리하고, 서버가 대상 문의 소속을 확인한 뒤 성공하면 `GET /inquiries/{id}/edit`로 리다이렉트해 편집 화면을 갱신한다. 마지막 첨부의 삭제(첨부 0개 상태)도 허용한다.
 
-### Creation and edit attachment validation
+### 생성·편집 시 첨부 검증
 
-1. Web adapter는 `attachments`와 `deleteAttachmentIds`를 request DTO로 바인딩하되, `MultipartFile`, `Path`, 원시 파일 스트림을 application/domain 경계 너머로 전달하지 않는다.
-2. Validator는 모든 신규 파일에 대해 비어 있지 않음, NFC 표시 파일명 255자 이하, 제어문자·`/`·`\\` 없음, 허용 확장자, 선언 MIME 및 magic bytes 일치를 검증한다.
-3. Validator는 신규 파일 각각 10 MiB 이하와 요청 전체 신규 업로드 합계 20 MiB 이하를 검증한다. multipart parser는 파일당 10 MiB, 요청당 21 MiB 제한을 계속 적용한다.
-4. Update service는 대상 문의의 기존 첨부를 조회하고, 삭제 요청 ID가 모두 해당 문의에 속하는지 확인한다. 삭제 후 보존되는 첨부 수·크기와 유효 신규 첨부를 합산한다.
-5. `retainedCount + newCount <= 5` 및 `retainedSize + newUploadSize <= 20 MiB`를 server-side에서 확인한다. 삭제되지 않은 기존 첨부는 항상 수·크기에 포함한다.
-6. 모든 검증 성공 후에만 신규 파일을 UUID storage key로 private staging/final에 저장하고 DB update, metadata insert, metadata delete를 단일 DB transaction에서 실행한다.
-7. DB 커밋 후 삭제된 metadata의 final 파일을 storage key로 제거한다. 실패는 사용자에게 파일 경로를 노출하지 않고 보안 로그와 cleanup/reconciliation 대상으로 기록한다.
+1. 웹 어댑터는 편집 POST의 `attachments`를 요청 DTO로 바인딩하되, `MultipartFile`·`Path`·원시 파일 스트림을 애플리케이션·도메인 경계 밖으로 전달하지 않는다. 편집 POST는 삭제 목록을 받지 않는다.
+2. 검증기는 모든 새 파일에 대해 빈 파일 여부, 표시 파일명 NFC 정규화 후 255자 이하, 제어문자·`/`·`\\` 미포함, 허용 확장자, 선언된 MIME과 파일 서명(magic bytes) 일치를 확인한다.
+3. 검증기는 새 파일 각각 10 MiB 이하, 요청 내 새 파일 합계 20 MiB 이하를 확인한다. multipart 파서에는 파일당 10 MiB, 요청당 21 MiB 제한을 함께 적용한다.
+4. 편집 서비스는 대상 문의의 현재 저장된 기존 첨부를 조회하고, 그 개수·크기에 유효한 새 첨부를 합산한다. 편집 POST는 삭제를 수행하지 않으므로 기준은 요청 시점에 실제 저장된 첨부다.
+5. 서버에서 `현재 개수 + 새 개수 ≤ 5`와 `현재 크기 + 새 파일 크기 ≤ 20 MiB`를 확인한다. 기존 첨부는 항상 개수·크기 계산에 포함한다.
+6. 모든 검증을 통과한 뒤에만 새 파일을 UUID 저장 키로 비공개 저장소에 기록하고, 문의 수정·첨부 메타데이터 추가를 하나의 DB 트랜잭션으로 실행한다.
 
-### Authorization and failure behavior
+**개별 첨부 삭제(즉시 엔드포인트) 흐름**
 
-- `/inquiries/**`의 기존 `AuthenticationInterceptor` 보호를 유지한다.
-- edit GET/POST의 controller 또는 dedicated ownership policy는 세션 회원 ID와 inquiry.memberId를 비교한다. 작성자가 아니면 HTTP 403이며, validation/storage/database 작업을 시작하지 않는다.
-- edit POST는 기존 `CsrfTokenFilter`로 보호한다. CSRF 실패 시 HTTP 403이며 DB/파일 변경은 없다.
-- attachment ID가 대상 inquiry에 없으면 요청을 400(편집 폼 오류)으로 처리한다. 다운로드의 존재·소속·저장 파일 부재는 기존처럼 동일한 404다.
-- 검증 실패는 폼을 유지하며, 새 파일/metadata를 남기지 않는다. I/O 또는 DB 실패 시 신규 staging/final을 보상 삭제하고 기존 attachment를 보존한다.
+1. 웹 어댑터는 경로 변수 `inquiryId`·`attachmentId`만 받고, CSRF 검증과 작성자 권한 확인을 먼저 수행한다.
+2. 삭제 서비스는 `(inquiryId, attachmentId)` 소속을 검증한다. 소속이 확인되지 않으면 저장 키·경로를 노출하지 않는 일반 404로 처리하고 아무 것도 변경하지 않는다.
+3. 소속이 확인되면 메타데이터 삭제를 하나의 DB 트랜잭션으로 실행한다. 마지막 첨부의 삭제(첨부 0개 상태)도 허용한다.
+4. DB 커밋 이후 삭제된 메타데이터의 최종 파일을 저장 키로 제거한다. 제거 실패는 사용자에게 파일 경로를 노출하지 않고 보안 로그와 정리·재조정 대상으로 기록하되 DB 삭제 결과는 유지한다.
+5. 성공 시 `GET /inquiries/{id}/edit`로 리다이렉트해 편집 화면을 갱신한다.
 
-## Data Models and Ports
+### 권한과 실패 처리
 
-### Existing models (preserved)
+- `/inquiries/**`에는 기존 `AuthenticationInterceptor` 보호를 유지한다.
+- 편집 GET/POST와 개별 삭제 POST는 세션 회원 ID와 문의 작성자 ID를 비교한다. 작성자가 아니면 HTTP 403을 반환하고 검증·저장·DB 작업을 시작하지 않는다.
+- 편집 POST와 개별 삭제 POST는 기존 `CsrfTokenFilter`로 보호한다. CSRF 검증에 실패하면 HTTP 403이며 DB·파일을 변경하지 않는다.
+- 개별 삭제 요청의 첨부가 없거나 해당 문의에 속하지 않으면 저장 키·경로를 노출하지 않는 일반 404로 처리한다. 다운로드의 미존재·소속 불일치·저장 파일 부재도 기존과 동일하게 404다.
+- 검증 실패 시 폼을 유지하며 새 파일·메타데이터를 남기지 않는다. 입출력 또는 DB 실패 시 새로 저장한 임시·최종 파일을 보상 삭제하고 기존 첨부를 보존한다.
+
+## 데이터 모델과 포트
+
+### 기존 모델(유지)
 
 - `Inquiry(id, memberId, title, content, viewCount, createdAt)`
 - `InquiryAttachment(id, inquiryId, storageKey, originalFilename, mediaType, fileSize, createdAt)`
-- `AttachmentMediaType` (`PDF`, `PNG`, `JPEG`)
+- `AttachmentMediaType`(`PDF`, `PNG`, `JPEG`)
 - `PendingInquiryAttachment(storageKey, originalFilename, mediaType, fileSize)`
-- `InquiryDetail(..., attachments)` and attachment download result
+- `InquiryDetail(..., attachments)`와 첨부 다운로드 결과
 
-### Approved additions
+### 추가된 구성 요소
 
-| Component | Change |
+| 구성 요소 | 변경 내용 |
 |---|---|
-| `UpdateInquiryUseCase` | New inbound port for author-authorized title/content/attachment update. |
-| `UpdateInquiryCommand` | Inquiry ID, actor member ID, title, content, validated new pending attachments, and deletion attachment IDs; no Spring/Path types. |
-| `InquiryAttachmentRepository` | Add metadata deletion by verified inquiry/attachment IDs as part of the existing DB transaction boundary. |
-| `InquiryAttachmentQueryRepository` | Add inquiry attachment aggregate/list query needed to calculate retained count and size; query must return only metadata. |
-| `InquiryRepository` / query port | Add author ownership lookup/update capability without exposing persistence types. |
-| `InquiryAttachmentStorage` | Use existing delete and compensation operations; no user filename path resolution. |
-| `InquiryForm` | Add edit binding fields and attachment input while retaining validation errors and safe redisplay state. |
-| `InquirySummary` / `InquiryQueryRepository` | Add list-only `hasAttachments` boolean and derive it in the existing paginated query through `EXISTS` or an equivalent aggregate, never through per-row attachment reads. |
+| `UpdateInquiryUseCase` | 작성자 권한 기반의 제목·내용 수정과 새 첨부 추가를 위한 인바운드 포트 |
+| `UpdateInquiryCommand` | 문의 ID, 요청 회원 ID, 제목, 내용, 검증된 새 첨부를 담는다. 삭제 목록·Spring·`Path` 타입은 포함하지 않는다. |
+| `DeleteInquiryAttachmentUseCase` / `DeleteInquiryAttachmentCommand` | 개별 첨부 즉시 삭제를 위한 인바운드 포트. 문의 ID, 첨부 ID, 요청 회원 ID를 담고 작성자 권한과 `(inquiryId, attachmentId)` 소속을 검증한다. |
+| `InquiryAttachmentRepository` | DB 트랜잭션 안에서 (문의 ID, 첨부 ID) 소속을 검증해 메타데이터를 삭제한다. |
+| `InquiryAttachmentQueryRepository` | 남는 개수·크기 계산에 필요한 첨부 집계·목록 조회를 추가한다. 메타데이터만 반환한다. |
+| `InquiryRepository` / 조회 포트 | 퍼시스턴스 타입을 노출하지 않고 작성자 조회·본문 수정 기능을 추가한다. |
+| `InquiryAttachmentStorage` | 기존 삭제·보상 동작을 재사용한다. 사용자 파일명을 경로로 사용하지 않는다. |
+| `InquiryForm` | 편집 바인딩 필드와 새 첨부 입력을 유지하고, 검증 오류와 안전한 재표시 상태를 유지한다. 삭제 목록 바인딩은 두지 않는다(개별 삭제는 전용 엔드포인트). |
+| `InquirySummary` / `InquiryQueryRepository` | 목록 전용 `hasAttachments` 값을 추가하고, 행별 조회 없이 기존 페이지 쿼리의 `EXISTS` 또는 동등한 집계로 계산한다. |
 
-No new attachment table is required for this enhancement. Migration scope is limited to a **data-compatibility migration/test only if the existing database has an enforced 3-file business constraint or data violating the new aggregate assumptions**. The current `inquiry_attachments` schema remains valid because it models each attachment independently. Existing rows remain valid; no storage-key or MIME data migration is required.
+이 확장에는 새 첨부 테이블이 필요하지 않다. 마이그레이션은 **기존 DB에 3개 제한 제약이 강제되어 있거나 새 집계 가정과 충돌하는 데이터가 있는 경우에만** 데이터 호환용 마이그레이션·검증으로 한정한다. 현재 `inquiry_attachments` 스키마는 각 첨부를 독립 행으로 모델링하므로 그대로 유효하며, 저장 키·MIME 데이터 마이그레이션은 필요하지 않다.
 
-### Inquiry-list attachment indicator (planned)
+### 목록 첨부 표시(계획)
 
-`InquirySummary`와 목록 query result에는 `hasAttachments` boolean만 추가한다. MyBatis 목록 SQL은 `inquiry_attachments`에 대한 상관 `EXISTS` 서브쿼리 또는 동등한 한 번의 `LEFT JOIN`/집계 방식을 사용해 각 문의의 첨부 존재 여부를 계산한다. 페이지 결과를 받은 뒤 행마다 attachment repository/query를 호출하는 방식은 금지한다.
+`InquirySummary`와 목록 조회 결과에는 `hasAttachments` 값만 추가한다. MyBatis 목록 SQL은 `inquiry_attachments`에 대한 상관 `EXISTS` 서브쿼리 또는 동등한 단일 `LEFT JOIN`·집계로 각 문의의 첨부 존재 여부를 계산한다. 페이지 결과를 받은 뒤 행마다 첨부 조회를 호출하는 방식(N+1)은 금지한다.
 
-목록 템플릿은 `hasAttachments=true`인 행에만 텍스트로도 보완된 단순 첨부 아이콘/배지를 표시한다. 표시 요소는 보이는 아이콘과 별개로 스크린 리더가 읽을 수 있는 `첨부파일` 접근 가능한 이름을 가진다(예: 숨김 텍스트 또는 동등한 ARIA 이름). `false`인 행에는 표시·숨김 텍스트·빈 placeholder를 렌더링하지 않는다. 목록이 비어 있으면 기존 빈 상태와 페이지네이션만 표시한다. 이 UI는 다운로드 링크나 attachment ID를 만들지 않으며, storage key·경로·기타 파일 metadata를 출력하지 않는다.
+목록 템플릿은 `hasAttachments`가 참인 행에만 텍스트로 보완된 간단한 첨부 표시를 렌더링한다. 표시 요소는 눈에 보이는 아이콘과 별개로 스크린 리더가 읽을 수 있는 `첨부파일` 접근성 이름을 가진다(숨김 텍스트 또는 동등한 ARIA 이름). 값이 거짓인 행에는 표시·숨김 텍스트·빈 자리를 렌더링하지 않는다. 목록이 비어 있으면 기존 빈 상태와 페이지네이션만 표시한다. 이 UI는 다운로드 링크나 첨부 ID를 만들지 않으며, 저장 키·경로·기타 파일 정보를 출력하지 않는다.
 
-## Persistence and Transaction Design
+## 저장·트랜잭션 설계
 
-The existing `inquiry_attachments` schema (PK, FK to inquiry, unique storage key, filename, validated MIME, positive size, created timestamp, inquiry index) remains the source of truth. The max-five and total-size rules are cross-row business invariants, so the service must query current attachments and enforce them under the update transaction; they are not assumed to be guaranteed by a per-row database constraint.
+`inquiry_attachments` 스키마(기본 키, 문의 외래 키, 고유 저장 키, 파일명, 검증된 MIME, 양수 크기 제약, 생성 시각, 문의 인덱스)를 그대로 기준으로 삼는다. 최대 5개·총 20 MiB 규칙은 여러 행에 걸친 업무 규칙이므로, 서비스가 현재 첨부를 조회해 수정 트랜잭션 안에서 강제한다. 행별 DB 제약으로 보장한다고 가정하지 않는다.
 
-For concurrent edits, implementation should serialize or protect the inquiry/attachment aggregate sufficiently to prevent two simultaneous valid requests from exceeding count/total size. The concrete MyBatis approach must be tested (for example, locking the target inquiry row during the write workflow) without breaking the project’s hexagonal ports. A migration test must demonstrate that Liquibase remains idempotent and that pre-existing attachments remain downloadable after deployment.
+동시 편집에 대비해 대상 문의·첨부 묶음을 충분히 직렬화·보호하여 두 요청이 동시에 개수·총 크기 한도를 초과하지 못하게 한다. 구체적인 MyBatis 방식(예: 쓰기 흐름에서 대상 문의 행 잠금)은 프로젝트의 헥사고날 포트를 해치지 않도록 테스트로 확인한다. 마이그레이션 테스트로 Liquibase가 반복 실행에도 안전하고, 배포 후 기존 첨부를 계속 다운로드할 수 있음을 확인한다.
 
-## UI Design
+## 화면 설계
 
-- `inquiry/list.html` renders the attachment indicator only for `hasAttachments` rows. It uses an unobtrusive icon/badge plus `첨부파일` screen-reader text or an equivalent accessible name; neither an empty indicator nor hidden attachment text appears for rows without attachments or in the empty state.
-- `inquiry/detail.html` shows an Edit action only when the current session member is the inquiry author; the server remains authoritative.
-- `inquiry/form.html` or a dedicated edit template displays existing files with an individual removal control bound to `deleteAttachmentIds`, plus an optional multi-file add input.
-- Guidance must state allowed types, file maximum 10 MiB, final maximum 5 files, and final aggregate maximum 20 MiB.
-- Only attachment guidance and the attachment-file-list UI use `font-size: 12px`; this value is within the accessible approved target. No global, form-wide, or unrelated inquiry typography change is permitted.
-- HTML `accept` is `.pdf,.png,.jpg,.jpeg` only as UX assistance. The UI must not present the browser-selected file count/size as authoritative.
+- `inquiry/list.html`: `hasAttachments`가 참인 행에만 첨부 표시를 렌더링한다. 눈에 띄지 않는 아이콘·배지와 함께 `첨부파일` 스크린 리더 텍스트(또는 동등한 접근성 이름)를 둔다. 첨부가 없는 행이나 빈 상태에는 빈 표시나 숨김 텍스트를 두지 않는다.
+- `inquiry/detail.html`: 현재 세션 회원이 작성자일 때만 편집 진입을 표시한다. 권한 판단의 기준은 서버다.
+- `inquiry/form.html`(또는 편집 전용 템플릿): 기존 파일마다 CSRF 보호된 개별 삭제 POST 폼(`POST /inquiries/{id}/attachments/{attachmentId}/delete`, 삭제 버튼)을 두고, 여러 파일을 추가할 수 있는 입력을 함께 제공한다. 삭제는 즉시 반영되어 편집 화면이 다시 로드된다.
+- 안내 문구는 허용 형식, 파일당 최대 10 MiB, 최종 최대 5개, 최종 합계 최대 20 MiB를 명시한다.
+- `font-size: 12px`는 첨부 안내와 첨부 파일 목록에만 적용한다. 전역·폼 전체·그 밖의 문의 화면 글자 크기는 변경하지 않는다.
+- HTML `accept`는 `.pdf,.png,.jpg,.jpeg`로 두되 보조 UX일 뿐이다. 브라우저가 고른 파일 개수·크기를 기준으로 삼지 않는다.
 
-## Error Handling
+### 첨부 크기 표시 형식(사람이 읽기 쉬운 이진 단위)
 
-| Condition | Result |
+`inquiry/detail.html`과 `inquiry/form.html`의 기존 첨부 목록에서 첨부 크기를 표시할 때, 저장된 바이트 값을 사람이 읽기 쉬운 이진(1024 기반) 단위로 변환해 보여준다. 이 변환은 표시 전용이며 DB에 저장된 바이트 값이나 검증 로직에는 영향을 주지 않는다.
+
+- **단위 선택(임계값):** 크기 규모에 따라 `1024` 배수 경계로 단위를 고른다. `1024` 바이트 미만은 `B`, `1024` 이상 `1024²` 미만은 `KB`, `1024²` 이상 `1024³` 미만은 `MB`로 이어지는 이진 단위(B/KB/MB/GB/…)를 사용한다.
+- **반올림:** `KB` 이상 단위는 소수점 1자리로 표시하고, 바이트(`B`) 단위는 정수로 표시한다. 파일당 최대 10 MiB·최종 20 MiB 제한 범위에서는 실무상 `B`/`KB`/`MB`가 사용된다.
+- **표시 전용 성격:** 이 형식은 화면 표기에만 적용되며 저장 키·실제 파일 경로·다운로드 주소를 노출하지 않는다. 크기 이외의 첨부 정보 노출 방침은 기존 설계를 그대로 따른다.
+
+## 오류 처리
+
+| 상황 | 처리 |
 |---|---|
-| Unauthenticated edit request | Existing login redirect behavior |
-| Authenticated non-author edit request | HTTP 403; no file or DB mutation |
-| CSRF failure on edit | HTTP 403; no file or DB mutation |
-| Invalid title/content/new file/deletion ID | Edit form with safe field/global error; no mutation |
-| Final count over 5 or final size over 20 MiB | Edit form with attachment error; no mutation |
-| File over 10 MiB or invalid type/name/signature | Edit form with safe attachment error; no mutation |
-| Staging/final storage or DB error | Generic failure; compensate new files; preserve old state; security log |
-| Final deletion I/O failure after DB commit | Do not expose path; security log and cleanup reconciliation |
-| Download metadata/ownership/file absence | Existing generic HTTP 404 |
+| 미인증 편집·삭제 요청 | 기존 로그인 리다이렉트 |
+| 작성자가 아닌 인증 사용자의 편집·삭제 요청 | HTTP 403, 파일·DB 변경 없음 |
+| 편집·삭제 CSRF 실패 | HTTP 403, 파일·DB 변경 없음 |
+| 잘못된 제목·내용·새 파일 | 편집 폼 유지, 안전한 필드·전역 오류, 변경 없음 |
+| 최종 개수 5개 초과 또는 최종 크기 20 MiB 초과 | 편집 폼 유지, 첨부 오류, 변경 없음 |
+| 파일 10 MiB 초과 또는 형식·이름·서명 오류 | 편집 폼 유지, 안전한 첨부 오류, 변경 없음 |
+| 편집 저장 또는 DB 오류 | 일반 오류 응답, 새 파일 보상 삭제, 기존 상태 보존, 보안 로그 |
+| 개별 삭제 대상 첨부 없음·소속 불일치 | 저장 키·경로 미노출 일반 404, 변경 없음 |
+| 개별 삭제 DB 커밋 후 파일 제거 실패 | 경로 미노출, 보안 로그와 정리·재조정 대상, DB 삭제 결과 유지 |
+| 다운로드 메타데이터·소속·파일 부재 | 기존과 동일한 일반 404 |
 
-## Correctness Properties
+## 정확성 속성(Correctness Properties)
 
-### Property 1: Page clamping
-For any requested page number, the effective page is within 1 through total pages. **Validates: Requirements 1.3**
+### 속성 1: 페이지 번호 보정
+어떤 요청 페이지 번호든, 실제 사용 페이지는 항상 1 이상 전체 페이지 수 이하다. **검증 대상: 요구사항 1.3**
 
-### Property 2: View-count increment
-For any detail request, stored and displayed view count increase by exactly one. **Validates: Requirements 3.2, 3.3**
+### 속성 2: 조회수 증가
+어떤 상세 조회든, 저장·표시되는 조회수는 정확히 1 증가한다. **검증 대상: 요구사항 3.2, 3.3**
 
-### Property 3: Creation field validation
-For any create input with blank/over-limit title or content, creation is rejected. **Validates: Requirements 2.2, 2.3**
+### 속성 3: 작성 입력 검증
+제목·내용이 비어 있거나 길이를 초과한 어떤 작성 입력이든, 등록은 거부된다. **검증 대상: 요구사항 2.2, 2.3**
 
-### Property 4: Attachment type validation
-For any upload candidate, only PDF/PNG/JPEG with matching extension, declared MIME, and signature is accepted. **Validates: Requirements 5.4, 5.15**
+### 속성 4: 첨부 형식 검증
+어떤 업로드 후보든, 확장자·선언 MIME·서명이 모두 일치하는 PDF/PNG/JPEG만 허용된다. **검증 대상: 요구사항 5.4, 5.15**
 
-### Property 5: Edit aggregate invariants
-For any valid edit candidate, the persisted attachment set contains at most 5 attachments and has total size at most 20 MiB; otherwise no inquiry, metadata, or newly staged/final file change persists. **Validates: Requirements 5.3, 5.14, 5.18**
+### 속성 5: 편집 집계 불변식
+유효한 어떤 편집 후보든, 편집 POST 이후 저장된 첨부는 최대 5개·총 20 MiB 이하다(기준: 현재 저장분 + 새 파일). 이를 넘으면 문의·메타데이터·새로 저장한 임시/최종 파일 어느 것도 반영되지 않는다. **검증 대상: 요구사항 5.3, 5.14, 5.18**
 
-### Property 6: Ownership and retention isolation
-For any edit request, a non-author cannot change inquiry content or attachment metadata/files, and any existing attachment not explicitly selected for deletion remains associated with the inquiry. **Validates: Requirements 5.12, 5.13, 5.16**
+### 속성 6: 작성자 권한과 보존 격리
+어떤 편집·개별 삭제 요청이든, 작성자가 아니면 문의 내용이나 첨부를 바꿀 수 없다. 편집 POST는 삭제를 수행하지 않으므로 기존 첨부는 그대로 연결된 채 남고, 개별 삭제는 `(inquiryId, attachmentId)` 소속이 확인된 대상 하나만 제거한다. **검증 대상: 요구사항 5.12, 5.13, 5.16, 5.21, 5.22**
 
-### Property 7: Storage-key and download isolation
-For any attachment/inquiry ID combination, paths are private-root-contained UUID storage keys only and a non-member attachment relation never opens a stream. **Validates: Requirements 5.6, 5.8, 5.10**
+### 속성 7: 저장 키·다운로드 격리
+어떤 (첨부, 문의) ID 조합이든, 경로는 비공개 루트 내부의 서버 생성 UUID 저장 키로만 구성되며, 문의에 속하지 않는 첨부 관계는 파일 스트림을 열지 않는다. **검증 대상: 요구사항 5.6, 5.8, 5.10**
 
-### Property 8: List attachment-presence isolation
-For any inquiry list result, `hasAttachments` is true exactly when the inquiry has at least one attached metadata row; the list projection contains no attachment identifier, storage key, path, or download target. **Validates: Requirements 6.1, 6.4, 6.5**
+### 속성 8: 목록 첨부 존재 격리
+어떤 목록 결과든, `hasAttachments`는 해당 문의에 첨부 행이 하나 이상 있을 때만 참이며, 목록 데이터에는 첨부 식별자·저장 키·경로·다운로드 주소가 없다. **검증 대상: 요구사항 6.1, 6.4, 6.5**
 
-## Testing Strategy
+### 속성 9: 첨부 크기 표시 형식
+어떤 저장 바이트 값이든, 상세·편집 화면에 표시되는 첨부 크기는 그 값의 규모에 맞는 이진(1024 기반) 단위(B/KB/MB/…)로 나타나며, KB 이상은 소수점 1자리·바이트는 정수로 표기된다. 이 변환은 표시 전용이므로 저장된 바이트 값은 변하지 않고, 표시에 저장 키·파일 경로는 포함되지 않는다. **검증 대상: 요구사항 5.20 (IA-07)**
 
-The existing create/download unit, controller, storage, migration, and boundary tests remain required regression coverage. New implementation must add:
+## 테스트 전략
 
-| Layer | Required coverage |
+기존 생성·다운로드 단위 테스트, 컨트롤러·저장소·마이그레이션·경계 테스트는 회귀 검증으로 계속 유지한다. 새 구현에는 다음을 추가한다.
+
+| 계층 | 필요한 검증 |
 |---|---|
-| Application service | Owner success, non-owner denial, retain-by-default, individual deletion, add-and-delete same edit, count 5/6 boundary, retained+new total 20 MiB boundary, invalid deletion ownership, compensation. |
-| Validator | Per-file 10 MiB, allowed PDF/PNG/JPEG signatures, combined new request limit, filename validation; retain existing tests. |
-| Controller | Author edit GET/POST, CSRF failure, non-author 403, field/attachment errors redisplayed, correct multipart inputs, 12px classes scoped only to guidance/list. |
-| Persistence/integration | Transactional title/content/metadata update; lock/concurrency behavior; existing rows retained; any required compatibility migration is idempotent. |
-| Storage/integration | New-file compensation, post-commit delete failure logging/reconciliation, no deletion of retained files, no path exposure. |
-| Inquiry-list attachment indicator | A single paginated list query derives `hasAttachments` without per-row queries; unit/persistence tests cover true and false values, no attachments, and an empty list; template/controller tests cover visible indicator plus `첨부파일` accessible name only when true and no attachment ID/storage key/path output. |
-| Property-based tests | Properties 5 and 6 using constrained combinations of retained files, new valid files, deletion sets, counts, sizes, and owner IDs; Property 8 with inquiries that have zero or one-or-more metadata rows and no attachment metadata in the list projection. |
+| 애플리케이션 서비스 | 편집: 작성자 성공, 비작성자 거부, 기본 보존, 개수 5/6 경계, 현재 크기+새 크기 20 MiB 경계, 새 파일 보상 처리. 개별 삭제: 작성자 성공, 비작성자 거부, 소속 불일치 404, 마지막 첨부 삭제 허용, 커밋 후 파일 제거 실패 로깅 |
+| 검증기 | 파일당 10 MiB, 허용 PDF/PNG/JPEG 서명, 새 요청 합계 제한, 파일명 검증. 기존 테스트 유지 |
+| 컨트롤러 | 작성자 편집 GET/POST, 개별 삭제 POST(성공 후 편집 리다이렉트, 마지막 첨부 삭제 허용), CSRF 실패, 비작성자 403, 미인증 로그인 리다이렉트, 소속 불일치 404, 필드·첨부 오류 재표시, 올바른 multipart 입력, 12px가 안내·목록에만 적용됨 |
+| 퍼시스턴스·통합 | 제목·내용·메타데이터 트랜잭션 수정, 잠금·동시성 동작, 기존 행 보존, 필요한 호환 마이그레이션의 반복 실행 안전성 |
+| 저장소·통합 | 새 파일 보상, 커밋 후 삭제 실패 로그·재조정, 남긴 파일 미삭제, 경로 미노출 |
+| 목록 첨부 표시 | 단일 페이지 쿼리로 `hasAttachments` 계산(행별 조회 없음), 참·거짓·첨부 없음·빈 목록 단위/퍼시스턴스 테스트, 참일 때만 `첨부파일` 접근성 이름 노출 및 첨부 ID·저장 키·경로 미출력 |
+| 속성 기반 테스트 | 속성 5·6을 남는 파일·유효한 새 파일·삭제 집합·개수·크기·작성자 ID 조합으로 검증, 속성 8을 첨부 0개·1개 이상 문의와 목록 데이터의 첨부 정보 미포함으로 검증 |
 
-## Security
+## 보안
 
-Existing authentication, session author assignment, CSRF, private storage, UUID keys, root containment, MIME/signature verification, streaming, `nosniff`, and no-store controls remain unchanged. The enhancement adds server-side author ownership enforcement for all edit state changes. Client-provided IDs, file lists, `accept`, sizes, and UI visibility are untrusted inputs and must never authorize deletion or bypass aggregate limits.
+기존의 인증, 세션 기반 작성자 지정, CSRF, 비공개 저장소, UUID 키, 루트 격리, MIME·서명 검증, 스트리밍, `nosniff`, `no-store` 통제는 그대로 유지한다. 이번 확장은 모든 편집 상태 변경에 대해 서버 측 작성자 권한 검사를 추가한다. 클라이언트가 보낸 ID·파일 목록·`accept`·크기·UI 노출 여부는 신뢰하지 않는 입력이며, 삭제 권한을 부여하거나 집계 한도를 우회하는 근거로 사용하지 않는다.
 
-## Document Relations
+## 문서 관계
 
-| Document | Scope |
+| 문서 | 범위 |
 |---|---|
-| [`member-auth-baseline`](../member-auth-baseline/) | Initial authentication snapshot |
-| [`member-access-management`](../member-access-management/) | Role, status, and access management |
-| **This spec** | Inquiry lifecycle, attachments, and approved author edit enhancement |
+| [`member-auth-baseline`](../member-auth-baseline/) | 권한 구분 이전 초기 시스템 스냅샷 |
+| [`member-access-management`](../member-access-management/) | 역할·상태·권한 관리·감사 로그 |
+| **본 스펙** | 문의 생명주기, 첨부, 작성자 편집 확장 |
 
-## Implemented edit extension and validation status
+## 구현·검증 상태
 
-The author-only edit extension described in this document is implemented. `GET /inquiries/{id}/edit` renders the author’s title, content, and existing attachment list; multipart `POST /inquiries/{id}/edit` accepts title/content changes, optional new `attachments`, and zero or more `deleteAttachmentIds`. Existing attachments are retained unless their IDs are selected for deletion. The controller and application service both enforce author ownership; the existing authentication and CSRF layers protect the request.
+이 문서에 기술한 작성자 전용 편집 확장은 구현되어 있다. `GET /inquiries/{id}/edit`는 작성자의 제목·내용·기존 첨부 목록을 표시하고, multipart `POST /inquiries/{id}/edit`는 제목·내용 수정과 선택적 새 `attachments`를 받는다. 기존 첨부의 개별 삭제는 편집 요청이 아니라 별도의 CSRF 보호 즉시 삭제 엔드포인트 `POST /inquiries/{id}/attachments/{attachmentId}/delete`로 처리하며(이전 `deleteAttachmentIds` 지연 삭제 방식 대체), 삭제 성공 시 `GET /inquiries/{id}/edit`로 리다이렉트한다. 기존 첨부는 명시적으로 삭제하지 않는 한 보존된다. 컨트롤러와 애플리케이션 서비스가 모두 작성자 권한을 강제하며, 기존 인증·CSRF 계층이 요청을 보호한다.
 
-New uploads are restricted to PDF, PNG, and JPEG only after extension, declared MIME, and signature checks. Each new file is limited to 10 MiB. The server calculates the retained set after requested deletions and rejects a final set over 5 files or 20 MiB; it does not trust the HTML `accept` attribute or browser selection. Attachment guidance and the existing-attachment list are the only inquiry UI selectors set to `12px`.
+새 파일은 확장자·선언 MIME·서명 검사를 모두 통과한 PDF/PNG/JPEG만 허용한다. 새 파일 하나는 10 MiB로 제한한다. 서버는 현재 저장된 첨부에 새 파일을 합산해 최종 5개·20 MiB 초과를 거부하며, HTML `accept`나 브라우저 선택을 신뢰하지 않는다. `12px`는 첨부 안내와 기존 첨부 목록에만 적용한다.
 
-The update write workflow locks the inquiry aggregate, validates ownership and final limits, stores new UUID-keyed private files, then updates inquiry content and attachment metadata in the database transaction. On validation, storage, or database failure it compensates newly stored files and preserves existing metadata/files. It removes selected old files only after commit; a post-commit removal failure is logged for orphan reconciliation without exposing a path. No edit-specific Liquibase changeSet was required: the existing per-attachment `inquiry_attachments` table, foreign key, UUID storage-key uniqueness, positive-size constraint, and inquiry index remain compatible because the 5-file/20-MiB rules are enforced as aggregate service invariants. Existing metadata, storage keys, and downloads are preserved.
+편집 쓰기 흐름은 대상 문의를 잠그고 작성자 권한과 최종 한도를 검증한 뒤, 새 UUID 키 비공개 파일을 저장하고, 같은 DB 트랜잭션에서 문의 내용과 첨부 메타데이터를 수정한다. 검증·저장·DB 실패 시 새 파일을 보상 삭제하고 기존 메타데이터·파일을 보존한다. 개별 삭제 엔드포인트는 `(inquiryId, attachmentId)` 소속을 검증한 뒤 메타데이터를 삭제하고 저장 파일은 커밋 이후에만 제거하며, 마지막 첨부의 삭제(첨부 0개 상태)도 허용한다. 커밋 후 제거 실패는 경로를 노출하지 않고 정리·재조정 로그로 남기되 DB 삭제 결과는 유지한다. 소속이 확인되지 않으면 일반 404로 처리하고 아무 것도 변경하지 않는다. 편집·삭제 전용 Liquibase 변경은 필요하지 않았다. 기존 `inquiry_attachments` 테이블·외래 키·저장 키 고유성·양수 크기 제약·문의 인덱스가 그대로 유효하며, 5개·20 MiB 규칙은 서비스의 집계 불변식으로 강제하기 때문이다. 기존 메타데이터·저장 키·다운로드는 보존된다.
 
-> **Unvalidated scope:** At the user’s request, tasks 9.7.8 and 9.7.9 were skipped. Therefore the planned unit/property, controller/integration/migration regression coverage has not been run or validated for this extension, and this documentation does not claim a passing test suite or build.
+> **미검증 범위:** 사용자 요청으로 9.7.8과 9.7.9를 건너뛰었다. 따라서 이 확장에 대한 단위·속성 및 컨트롤러·통합·마이그레이션 회귀 검증은 실행되지 않았으며, 이 문서는 테스트·빌드 통과를 주장하지 않는다.

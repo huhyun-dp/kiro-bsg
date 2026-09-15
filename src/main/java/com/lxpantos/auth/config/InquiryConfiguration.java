@@ -7,6 +7,7 @@ import com.lxpantos.auth.application.port.out.InquiryAttachmentStorage;
 import com.lxpantos.auth.application.port.out.InquiryQueryRepository;
 import com.lxpantos.auth.application.port.out.InquiryRepository;
 import com.lxpantos.auth.application.port.out.TransactionRunner;
+import com.lxpantos.auth.application.port.in.DeleteInquiryAttachmentUseCase;
 import com.lxpantos.auth.application.service.InquiryAttachmentDownloadService;
 import com.lxpantos.auth.application.service.InquiryAttachmentOrphanCleanupService;
 import com.lxpantos.auth.application.service.InquiryQueryService;
@@ -31,6 +32,10 @@ public class InquiryConfiguration {
                                   InquiryAttachmentQueryRepository attachmentQueryRepository, InquiryAttachmentStorage attachmentStorage,
                                   TransactionRunner transactionRunner, Clock clock) {
         return new InquiryService(inquiryRepository, attachmentRepository, attachmentQueryRepository, attachmentStorage, transactionRunner, clock);
+    }
+    @Bean
+    DeleteInquiryAttachmentUseCase deleteInquiryAttachmentUseCase(InquiryService inquiryService) {
+        return inquiryService;
     }
     @Bean
     InquiryQueryService inquiryQueryService(InquiryQueryRepository inquiryQueryRepository, InquiryRepository inquiryRepository,

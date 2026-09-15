@@ -10,6 +10,8 @@ import com.lxpantos.auth.application.exception.InquiryNotFoundException;
 import com.lxpantos.auth.application.exception.InvalidInquiryAttachmentException;
 import com.lxpantos.auth.application.port.in.CreateInquiryCommand;
 import com.lxpantos.auth.application.port.in.CreateInquiryUseCase;
+import com.lxpantos.auth.application.port.in.DeleteInquiryAttachmentCommand;
+import com.lxpantos.auth.application.port.in.DeleteInquiryAttachmentUseCase;
 import com.lxpantos.auth.application.port.in.DeleteInquiryCommand;
 import com.lxpantos.auth.application.port.in.DeleteInquiryUseCase;
 import com.lxpantos.auth.application.port.in.DownloadInquiryAttachmentUseCase;
@@ -54,6 +56,7 @@ public class InquiryController {
     private final CreateInquiryUseCase createInquiryUseCase;
     private final UpdateInquiryUseCase updateInquiryUseCase;
     private final DeleteInquiryUseCase deleteInquiryUseCase;
+    private final DeleteInquiryAttachmentUseCase deleteInquiryAttachmentUseCase;
     private final InquiryQueryUseCase inquiryQueryUseCase;
     private final InquiryAttachmentUploadValidator attachmentValidator;
     private final DownloadInquiryAttachmentUseCase downloadUseCase;
@@ -61,16 +64,18 @@ public class InquiryController {
 
     public InquiryController(CreateInquiryUseCase createInquiryUseCase, UpdateInquiryUseCase updateInquiryUseCase,
                              DeleteInquiryUseCase deleteInquiryUseCase, InquiryQueryUseCase inquiryQueryUseCase) {
-        this(createInquiryUseCase, updateInquiryUseCase, deleteInquiryUseCase, inquiryQueryUseCase,
+        this(createInquiryUseCase, updateInquiryUseCase, deleteInquiryUseCase, null, inquiryQueryUseCase,
                 new InquiryAttachmentUploadValidator(), null, null);
     }
     @Autowired
     public InquiryController(CreateInquiryUseCase createInquiryUseCase, UpdateInquiryUseCase updateInquiryUseCase,
-                             DeleteInquiryUseCase deleteInquiryUseCase, InquiryQueryUseCase inquiryQueryUseCase,
+                             DeleteInquiryUseCase deleteInquiryUseCase, DeleteInquiryAttachmentUseCase deleteInquiryAttachmentUseCase,
+                             InquiryQueryUseCase inquiryQueryUseCase,
                              InquiryAttachmentUploadValidator attachmentValidator, DownloadInquiryAttachmentUseCase downloadUseCase,
                              InquiryAttachmentStorage attachmentStorage) {
         this.createInquiryUseCase = createInquiryUseCase; this.updateInquiryUseCase = updateInquiryUseCase;
-        this.deleteInquiryUseCase = deleteInquiryUseCase; this.inquiryQueryUseCase = inquiryQueryUseCase;
+        this.deleteInquiryUseCase = deleteInquiryUseCase; this.deleteInquiryAttachmentUseCase = deleteInquiryAttachmentUseCase;
+        this.inquiryQueryUseCase = inquiryQueryUseCase;
         this.attachmentValidator = attachmentValidator; this.downloadUseCase = downloadUseCase; this.attachmentStorage = attachmentStorage;
     }
     @GetMapping public String list(@RequestParam(defaultValue = "1") int page, HttpSession session, Model model) {
@@ -130,7 +135,7 @@ public class InquiryController {
             List<PendingInquiryAttachment> newAttachments = validateEditAttachments(detail, inquiryForm);
             updateInquiryUseCase.update(new UpdateInquiryCommand(
                     id, member.id(), false, inquiryForm.getTitle(), inquiryForm.getContent(),
-                    newAttachments, inquiryForm.getDeleteAttachmentIds()));
+                    newAttachments, Set.of()));
             return "redirect:/inquiries/" + id;
         } catch (InvalidInquiryAttachmentException e) {
             bindingResult.reject("inquiry.update", e.getMessage());
@@ -140,6 +145,19 @@ public class InquiryController {
             return populateEditForm(id, member, inquiryForm, detail, model);
         } catch (InquiryNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (InquiryAccessDeniedException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage(), e);
+        }
+    }
+    @PostMapping("/{id}/attachments/{attachmentId}/delete")
+    public String deleteAttachment(@PathVariable Long id, @PathVariable Long attachmentId, HttpSession session) {
+        SessionMember member = currentMember(session);
+        requireAuthor(id, member);
+        try {
+            deleteInquiryAttachmentUseCase.deleteAttachment(new DeleteInquiryAttachmentCommand(id, attachmentId, member.id()));
+            return "redirect:/inquiries/" + id + "/edit";
+        } catch (InquiryAttachmentNotFoundException | InquiryNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "첨부파일을 찾을 수 없습니다.");
         } catch (InquiryAccessDeniedException e) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage(), e);
         }
@@ -179,14 +197,11 @@ public class InquiryController {
     }
 
     private List<PendingInquiryAttachment> validateEditAttachments(InquiryDetail detail, InquiryForm inquiryForm) {
-        Set<Long> deletionIds = inquiryForm.getDeleteAttachmentIds() == null
-                ? Set.of()
-                : inquiryForm.getDeleteAttachmentIds();
-        var retainedAttachments = detail.attachments().stream()
-                .filter(attachment -> !deletionIds.contains(attachment.id()))
-                .toList();
-        long retainedSize = retainedAttachments.stream().mapToLong(attachment -> attachment.fileSize()).sum();
-        return attachmentValidator.validate(inquiryForm.getAttachments(), retainedAttachments.size(), retainedSize);
+        // The edit POST no longer deletes attachments; count/size limits are evaluated against
+        // the attachments currently stored on the inquiry plus the newly uploaded files.
+        var currentAttachments = detail.attachments();
+        long currentSize = currentAttachments.stream().mapToLong(attachment -> attachment.fileSize()).sum();
+        return attachmentValidator.validate(inquiryForm.getAttachments(), currentAttachments.size(), currentSize);
     }
 
     private String populateEditForm(Long id, SessionMember member, InquiryForm inquiryForm, Model model) {

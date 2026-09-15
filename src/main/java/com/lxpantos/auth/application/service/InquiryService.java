@@ -1,11 +1,14 @@
 package com.lxpantos.auth.application.service;
 
 import com.lxpantos.auth.application.exception.InquiryAccessDeniedException;
+import com.lxpantos.auth.application.exception.InquiryAttachmentNotFoundException;
 import com.lxpantos.auth.application.exception.InquiryAttachmentStorageException;
 import com.lxpantos.auth.application.exception.InquiryNotFoundException;
 import com.lxpantos.auth.application.exception.InvalidInquiryAttachmentException;
 import com.lxpantos.auth.application.port.in.CreateInquiryCommand;
 import com.lxpantos.auth.application.port.in.CreateInquiryUseCase;
+import com.lxpantos.auth.application.port.in.DeleteInquiryAttachmentCommand;
+import com.lxpantos.auth.application.port.in.DeleteInquiryAttachmentUseCase;
 import com.lxpantos.auth.application.port.in.DeleteInquiryCommand;
 import com.lxpantos.auth.application.port.in.DeleteInquiryUseCase;
 import com.lxpantos.auth.application.port.in.PendingInquiryAttachment;
@@ -26,14 +29,13 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public class InquiryService implements CreateInquiryUseCase, UpdateInquiryUseCase, DeleteInquiryUseCase {
+public class InquiryService implements CreateInquiryUseCase, UpdateInquiryUseCase, DeleteInquiryUseCase,
+        DeleteInquiryAttachmentUseCase {
     private static final Logger log = LoggerFactory.getLogger(InquiryService.class);
     private static final int MAX_ATTACHMENT_COUNT = 5;
     private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;
@@ -116,10 +118,11 @@ public class InquiryService implements CreateInquiryUseCase, UpdateInquiryUseCas
                 .orElseThrow(() -> new InquiryNotFoundException(command.inquiryId()));
         requireAuthor(ownerId, command.actorMemberId());
 
+        // The edit POST no longer deletes attachments; individual deletion is a dedicated
+        // immediate endpoint (DeleteInquiryAttachmentUseCase). Final count/size limits are
+        // therefore evaluated against the currently stored attachments plus the new files.
         List<InquiryAttachment> existingAttachments = attachmentQueryRepository.findByInquiryId(command.inquiryId());
-        List<InquiryAttachment> attachmentsToDelete = findAttachmentsToDelete(
-                existingAttachments, command.attachmentIdsToDelete());
-        validateFinalAttachmentLimits(existingAttachments, attachmentsToDelete, command.newAttachments());
+        validateFinalAttachmentLimits(existingAttachments, command.newAttachments());
 
         for (PendingInquiryAttachment attachment : command.newAttachments()) {
             storeNewAttachment(attachment);
@@ -135,12 +138,39 @@ public class InquiryService implements CreateInquiryUseCase, UpdateInquiryUseCas
             attachmentRepository.save(new InquiryAttachment(null, command.inquiryId(), attachment.storageKey(),
                     attachment.originalFilename(), attachment.mediaType(), attachment.fileSize(), updatedAt));
         }
-        for (InquiryAttachment attachment : attachmentsToDelete) {
-            if (attachmentRepository.deleteByInquiryIdAndId(command.inquiryId(), attachment.id()) != 1) {
-                throw new InvalidInquiryAttachmentException("삭제할 첨부파일이 문의에 속하지 않습니다.");
-            }
+        return UpdateInquiryResult.withoutDeletedAttachments(command.inquiryId());
+    }
+
+    @Override
+    public void deleteAttachment(DeleteInquiryAttachmentCommand command) {
+        Objects.requireNonNull(command, "command must not be null");
+        InquiryAttachment removed = transactionRunner.execute(() -> deleteAttachmentWithinTransaction(command));
+        removeStoredFileAfterCommit(command.inquiryId(), removed);
+    }
+
+    private InquiryAttachment deleteAttachmentWithinTransaction(DeleteInquiryAttachmentCommand command) {
+        Long ownerId = inquiryRepository.findOwnerIdForUpdate(command.inquiryId())
+                .orElseThrow(() -> new InquiryNotFoundException(command.inquiryId()));
+        requireAuthor(ownerId, command.actorMemberId());
+
+        InquiryAttachment attachment = attachmentQueryRepository
+                .findByInquiryIdAndId(command.inquiryId(), command.attachmentId())
+                .orElseThrow(InquiryAttachmentNotFoundException::new);
+
+        // Deleting the last attachment (leaving zero attachments) is allowed.
+        if (attachmentRepository.deleteByInquiryIdAndId(command.inquiryId(), command.attachmentId()) != 1) {
+            throw new InquiryAttachmentNotFoundException();
         }
-        return new UpdateInquiryResult(command.inquiryId(), attachmentsToDelete);
+        return attachment;
+    }
+
+    private void removeStoredFileAfterCommit(Long inquiryId, InquiryAttachment attachment) {
+        try {
+            attachmentStorage.delete(attachment.storageKey());
+        } catch (IOException | RuntimeException cleanupFailure) {
+            log.warn("Post-commit inquiry attachment cleanup failed; orphan reconciliation is required for inquiryId={}, attachmentId={}, failureType={}",
+                    inquiryId, attachment.id(), cleanupFailure.getClass().getSimpleName());
+        }
     }
 
     @Override
@@ -151,24 +181,6 @@ public class InquiryService implements CreateInquiryUseCase, UpdateInquiryUseCas
         if (inquiryRepository.softDelete(command.inquiryId()) == 0) {
             throw new InquiryNotFoundException(command.inquiryId());
         }
-    }
-
-    private List<InquiryAttachment> findAttachmentsToDelete(List<InquiryAttachment> existingAttachments,
-                                                              Set<Long> attachmentIdsToDelete) {
-        Map<Long, InquiryAttachment> existingById = new HashMap<>();
-        for (InquiryAttachment attachment : existingAttachments) {
-            existingById.put(attachment.id(), attachment);
-        }
-
-        List<InquiryAttachment> attachmentsToDelete = new ArrayList<>();
-        for (Long attachmentId : attachmentIdsToDelete) {
-            InquiryAttachment attachment = existingById.get(attachmentId);
-            if (attachment == null) {
-                throw new InvalidInquiryAttachmentException("삭제할 첨부파일이 문의에 속하지 않습니다.");
-            }
-            attachmentsToDelete.add(attachment);
-        }
-        return List.copyOf(attachmentsToDelete);
     }
 
     private void validateNewAttachments(List<PendingInquiryAttachment> newAttachments) {
@@ -185,20 +197,16 @@ public class InquiryService implements CreateInquiryUseCase, UpdateInquiryUseCas
     }
 
     private void validateFinalAttachmentLimits(List<InquiryAttachment> existingAttachments,
-                                                List<InquiryAttachment> attachmentsToDelete,
                                                 List<PendingInquiryAttachment> newAttachments) {
-        Set<Long> deletedIds = attachmentsToDelete.stream().map(InquiryAttachment::id).collect(java.util.stream.Collectors.toSet());
         long retainedCount = 0;
         long retainedSize = 0;
         try {
             for (InquiryAttachment attachment : existingAttachments) {
-                if (!deletedIds.contains(attachment.id())) {
-                    if (attachment.fileSize() <= 0) {
-                        throw new InvalidInquiryAttachmentException("첨부파일 메타데이터가 올바르지 않습니다.");
-                    }
-                    retainedCount = Math.addExact(retainedCount, 1);
-                    retainedSize = Math.addExact(retainedSize, attachment.fileSize());
+                if (attachment.fileSize() <= 0) {
+                    throw new InvalidInquiryAttachmentException("첨부파일 메타데이터가 올바르지 않습니다.");
                 }
+                retainedCount = Math.addExact(retainedCount, 1);
+                retainedSize = Math.addExact(retainedSize, attachment.fileSize());
             }
             long newSize = 0;
             for (PendingInquiryAttachment attachment : newAttachments) {

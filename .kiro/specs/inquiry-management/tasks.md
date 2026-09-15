@@ -4,7 +4,7 @@
 
 ## Overview
 
-문의의 기본 작성·목록·상세·접근 제어와 안전한 첨부 업로드/다운로드를 보존하면서, 9.7은 작성자 본인의 문의 편집으로 확장했다. 구현된 범위는 `GET`/multipart `POST /inquiries/{id}/edit`, retain-by-default 기존 첨부, `deleteAttachmentIds` 개별 삭제, 최종 5개·20 MiB 및 신규 파일당 10 MiB 제한, PDF/PNG/JPEG 검증, 작성자/CSRF 보호, 파일 보상 정리, 첨부 영역에 한정된 12px UI다.
+문의의 기본 작성·목록·상세·접근 제어와 안전한 첨부 업로드/다운로드를 보존하면서, 9.7은 작성자 본인의 문의 편집으로 확장했다. 구현된 범위는 `GET`/multipart `POST /inquiries/{id}/edit`, retain-by-default 기존 첨부, `deleteAttachmentIds` 개별 삭제, 최종 5개·20 MiB 및 신규 파일당 10 MiB 제한, PDF/PNG/JPEG 검증, 작성자/CSRF 보호, 파일 보상 정리, 첨부 영역에 한정된 12px UI다. 이후 9.10에서 개별 삭제 방식을 편집 화면 내 **즉시 삭제 엔드포인트**(`POST /inquiries/{id}/attachments/{attachmentId}/delete`)로 대체하며, 이전 `deleteAttachmentIds` 지연 삭제 서술은 폐기한다(9.7의 완료 이력 자체는 보존한다).
 
 - `[x]` — 구현 또는 문서화 완료
 - `[-]` — 사용자 요청으로 건너뜀(검증되지 않음)
@@ -83,6 +83,18 @@
   - [x] 9.8.3 문의 목록 템플릿/UI에 `hasAttachments=true` 행만 단순 첨부 표시와 접근 가능한 `첨부파일` 이름을 렌더링한다. 첨부 없는 행과 빈 목록에는 아이콘·숨김 텍스트·placeholder를 렌더링하지 않는다.
   - [-] 9.8.4 목록 query/mapper, controller/template 접근성 및 Property 8 회귀 테스트를 작성한다: 첨부 있음·없음, 빈 목록, 단일 목록 쿼리, `첨부파일` 접근 가능한 이름, attachment ID/storage key/path 비노출을 검증한다. **Validates: Requirements 6.1–6.6**
 
+- [ ] 9.9 첨부 크기 사람이 읽기 쉬운 표시 (코드 구현 전용)
+  - [ ] 9.9.1 저장된 첨부 바이트 값을 이진(1024 기반) 단위(B/KB/MB/…)로 규모에 맞춰 변환하는 표시 전용 포매팅을 추가한다. KB 이상은 소수점 1자리, 바이트는 정수로 나타내며 저장 바이트 값·검증 로직은 변경하지 않는다. **Implements: Requirements 5.20 (IA-07), Design 속성 9**
+  - [ ] 9.9.2 `inquiry/detail.html`과 `inquiry/form.html`의 기존 첨부 목록에 포맷된 크기를 표시한다. 저장 키·실제 파일 경로·다운로드 주소를 노출하지 않고 크기 이외 첨부 정보 노출 방침은 기존 설계를 유지한다. **Implements: Requirements 5.20 (IA-07), Design 속성 9**
+
+- [ ] 9.10 편집 화면 내 개별 첨부 즉시 삭제 (코드 구현 전용)
+  - [ ] 9.10.1 개별 삭제 인바운드 포트를 추가한다: `DeleteInquiryAttachmentUseCase`와 `DeleteInquiryAttachmentCommand`(inquiryId, attachmentId, 요청 회원 ID)를 정의한다. Spring·`MultipartFile`·`Path`는 application/domain 경계를 넘기지 않는다. 편집 POST의 `deleteAttachmentIds` 기반 지연 삭제를 대체한다. **Implements: Requirements 5.21, 5.22, Design 속성 6**
+  - [ ] 9.10.2 개별 삭제 애플리케이션 서비스를 구현한다: actor=author 확인, `(inquiryId, attachmentId)` 소속 검증, 소속 불일치 시 일반 404, DB 메타데이터 삭제와 커밋 후 저장 파일 제거, 커밋 후 제거 실패 시 경로 미노출 보안 로그·orphan reconciliation, 마지막 첨부 삭제(첨부 0개 상태) 허용을 구현한다. 편집 POST(`UpdateInquiryUseCase`)에서 삭제 처리·`deleteAttachmentIds` 계산을 제거하고 최종 개수·크기 기준을 현재 저장분 + 새 파일로 변경한다. **Implements: Requirements 5.13, 5.14, 5.21, 5.22, Design 속성 5, 6**
+  - [ ] 9.10.3 퍼시스턴스 어댑터·XML을 확인·정비한다: 기존 `(inquiryId, attachmentId)` 소속 검증 delete 매퍼를 즉시 삭제 흐름에서 재사용하고, 편집 aggregate 계산에서 삭제 반영 로직 의존을 제거한다. `inquiry_attachments` 스키마·저장 키·다운로드 호환성은 변경하지 않는다. **Implements: Requirements 5.21, 5.22**
+  - [ ] 9.10.4 웹 어댑터에 CSRF 보호 `POST /inquiries/{id}/attachments/{attachmentId}/delete` 엔드포인트를 추가한다: 작성자 검증, 미인증 로그인 리다이렉트, 비작성자 403, 소속 불일치 404, 성공 시 `GET /inquiries/{id}/edit` 리다이렉트를 구현한다. 편집 POST(`InquiryController`, `InquiryForm`)에서 `deleteAttachmentIds` 바인딩·처리를 제거한다. **Implements: Requirements 5.16, 5.17, 5.21, 5.22**
+  - [ ] 9.10.5 편집 템플릿을 수정한다: 기존 첨부 목록의 각 항목에 CSRF 토큰을 포함한 개별 삭제 POST 폼(삭제 버튼)을 두고, 편집 multipart 폼에서 `deleteAttachmentIds` 입력을 제거한다. 첨부 안내·목록 12px 범위와 다른 UI 글자 크기는 변경하지 않는다. **Implements: Requirements 5.19, 5.21**
+  - [ ] 9.10.6 단위·컨트롤러·통합 테스트를 작성한다: 작성자 즉시 삭제 성공(편집 리다이렉트), 소속 불일치 404, 비작성자 403, 미인증 리다이렉트, CSRF 실패 403, 마지막 첨부 삭제 허용, 커밋 후 파일 제거 실패 로깅, 편집 POST가 더 이상 삭제를 수행하지 않음(현재 저장분 + 새 파일 기준 5개/20 MiB 경계)을 실제 private temp storage와 H2로 검증한다. **Validates: Requirements 5.13, 5.14, 5.16, 5.17, 5.21, 5.22**
+
 ## Deferred product decisions (not implementation tasks)
 
 | Item | Current policy |
@@ -116,12 +128,18 @@
     { "id": 15, "tasks": ["9.8.1"] },
     { "id": 16, "tasks": ["9.8.2"] },
     { "id": 17, "tasks": ["9.8.3"] },
-    { "id": 18, "tasks": ["9.8.4"] }
+    { "id": 18, "tasks": ["9.8.4"] },
+    { "id": 19, "tasks": ["9.9.1"] },
+    { "id": 20, "tasks": ["9.9.2"] },
+    { "id": 21, "tasks": ["9.10.1"] },
+    { "id": 22, "tasks": ["9.10.2", "9.10.3"] },
+    { "id": 23, "tasks": ["9.10.4", "9.10.5"] },
+    { "id": 24, "tasks": ["9.10.6"] }
   ]
 }
 ```
 
-The completed waves preserve the baseline and the implemented edit-extension history. Waves 15–18 add the list projection, single-query persistence mapping, accessible UI, and regression/property coverage for the planned attachment indicator.
+The completed waves preserve the baseline and the implemented edit-extension history. Waves 15–18 add the list projection, single-query persistence mapping, accessible UI, and regression/property coverage for the planned attachment indicator. Waves 19–20 add the display-only human-readable attachment size formatting and its use in the detail/edit existing-attachment lists. Waves 21–24 replace the prior `deleteAttachmentIds` deferred deletion with the immediate per-attachment delete endpoint (use case/port, service·persistence, controller endpoint·edit template change, and tests), while the 9.7 completion history is preserved.
 
 ## Document Relations
 
