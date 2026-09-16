@@ -13,14 +13,14 @@ class HomeControllerTest {
     private final HomeController controller = new HomeController();
 
     @Test
-    void redirectsAuthenticatedMemberToMemberManagement() {
+    void redirectsAuthenticatedMemberToInquiries() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.getSession().setAttribute(
                 SessionKeys.AUTHENTICATED_MEMBER,
                 new SessionMember(1L, "user@example.com", "홍길동", MemberRole.VIEWER)
         );
 
-        assertThat(controller.home(request)).isEqualTo("redirect:/members");
+        assertThat(controller.home(request)).isEqualTo("redirect:/inquiries");
     }
 
     @Test

@@ -66,8 +66,8 @@
 
 #### Acceptance Criteria
 
-1. THE System SHALL 로그인 후 좌측 사이드바를 `회원 관리`, `권한 관리` 두 최상위 메뉴로 구성한다. ✅
-2. WHERE 현재 로그인 회원이 `ADMIN`인 경우에만, THE System SHALL 사이드바에 `권한 관리` 메뉴를 노출한다. ✅
+1. THE System SHALL 로그인 후 좌측 사이드바를 `회원 관리`, `문의 요청`, `권한 관리` 최상위 메뉴로 구성한다. ✅
+2. WHERE 현재 로그인 회원이 `ADMIN`인 경우에만, THE System SHALL 사이드바에 `회원 관리`와 `권한 관리` 메뉴를 노출한다. `문의 요청` 메뉴는 모든 로그인 회원에게 노출한다. ✅
 3. THE System SHALL 회원 관리 화면에서는 `회원 관리` 메뉴를, 권한 관리 화면에서는 `권한 관리` 메뉴를 활성 상태로 표시한다. ✅
 4. THE System SHALL 권한 관리 화면 경로를 `/admin/access`로 제공한다. ✅
 5. THE System SHALL 공통 헤더와 사이드바를 Thymeleaf fragment(`fragments/layout`)로 공통화한다. ✅
@@ -81,10 +81,11 @@
 
 #### Acceptance Criteria
 
-1. WHEN 미인증 사용자가 `/admin/access`에 접근하면, THE System SHALL 로그인 화면으로 이동시킨다. ✅
-2. WHEN 인증되었으나 `ADMIN`이 아닌 사용자가 `/admin/access`에 접근하면, THE System SHALL HTTP 403 오류 화면을 표시한다. ✅
-3. THE System SHALL 접근 권한을 세션 정보가 아닌 최신 DB 상태(역할·상태)로 판단한다. ✅
-4. WHEN `SUSPENDED`로 변경된 회원이 기존 세션으로 접근하면, THE System SHALL 세션을 무효화하고 로그인 화면으로 이동시킨다. ✅
+1. WHEN 미인증 사용자가 `/admin/access` 또는 `/members`에 접근하면, THE System SHALL 로그인 화면으로 이동시킨다. ✅
+2. WHEN 인증되었으나 `ADMIN`이 아닌 사용자가 `/admin/access` 또는 회원 관리 화면(`/members`)에 접근하면, THE System SHALL HTTP 403 오류 화면을 표시한다. ✅
+3. WHEN 인증되었으나 `ADMIN`이 아닌 사용자가 회원 목록 API(`/api/members`)에 접근하면, THE System SHALL HTTP 403 JSON 을 반환한다. 미인증 접근은 HTTP 401 JSON 을 반환한다. ✅
+4. THE System SHALL 접근 권한을 세션 정보가 아닌 최신 DB 상태(역할·상태)로 판단한다. ✅
+5. WHEN `SUSPENDED`로 변경된 회원이 기존 세션으로 접근하면, THE System SHALL 세션을 무효화하고 로그인 화면(또는 API 는 401)으로 처리한다. ✅
 
 ---
 

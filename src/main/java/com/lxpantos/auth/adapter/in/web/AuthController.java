@@ -38,7 +38,7 @@ public class AuthController {
     @GetMapping("/login")
     public String loginForm(HttpServletRequest request, Model model) {
         if (isAuthenticated(request)) {
-            return "redirect:/members";
+            return "redirect:/inquiries";
         }
         if (!model.containsAttribute("loginForm")) {
             model.addAttribute("loginForm", new LoginForm());
@@ -67,7 +67,7 @@ public class AuthController {
                     SessionKeys.AUTHENTICATED_MEMBER,
                     new SessionMember(member.id(), member.email(), member.name(), member.role())
             );
-            return "redirect:/members";
+            return "redirect:/inquiries";
         } catch (InvalidCredentialsException | SuspendedMemberException exception) {
             bindingResult.reject("login.failed", exception.getMessage());
             return "auth/login";
@@ -77,7 +77,7 @@ public class AuthController {
     @GetMapping("/signup")
     public String signUpForm(HttpServletRequest request, Model model) {
         if (isAuthenticated(request)) {
-            return "redirect:/members";
+            return "redirect:/inquiries";
         }
         if (!model.containsAttribute("signUpForm")) {
             model.addAttribute("signUpForm", new SignUpForm());

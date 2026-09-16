@@ -77,10 +77,10 @@ com.lxpantos.auth
 │   │       │   ├── SessionKeys.java           # 세션 attribute 키 상수
 │   │       │   └── SessionMember.java         # 세션 저장용 record (role 포함, Serializable)
 │   │       └── security/
-│   │           ├── AuthenticationInterceptor.java     # /members/** 인증 + 정지 회원 차단
+│   │           ├── AuthenticationInterceptor.java     # /members, /members/**, /inquiries/** 인증 + 정지 회원 차단
 │   │           ├── ApiAuthenticationInterceptor.java  # /api/** 인증 + 정지 회원 차단 (401)
-│   │           ├── AdminPageAuthorizationInterceptor.java # /admin/** ADMIN 권한 (403)
-│   │           ├── AdminApiAuthorizationInterceptor.java  # /api/admin/** ADMIN 권한 (401/403)
+│   │           ├── AdminPageAuthorizationInterceptor.java # /admin/**, /members[/**] ADMIN 권한 (403)
+│   │           ├── AdminApiAuthorizationInterceptor.java  # /api/admin/**, /api/members[/**] ADMIN 권한 (401/403)
 │   │           └── CsrfTokenFilter.java               # 커스텀 CSRF 필터
 │   └── out/
 │       ├── persistence/
@@ -101,8 +101,8 @@ com.lxpantos.auth
 │
 └── config/
     ├── ApplicationConfiguration.java          # Clock 빈, AuthenticationService 빈 등록
-    ├── WebConfiguration.java                  # AuthenticationInterceptor 등록 (/members/**)
-    ├── MemberQueryConfiguration.java          # ApiAuthenticationInterceptor 등록 (/api/**)
+    ├── WebConfiguration.java                  # 인증 인터셉터(/members[/**], /inquiries/**) + ADMIN 페이지 인터셉터(/members[/**]) 등록
+    ├── MemberQueryConfiguration.java          # 인증 인터셉터(/api/**) + ADMIN API 인터셉터(/api/members[/**]) 등록
     │                                          # MemberQueryService 빈 등록
     ├── AccessManagementConfiguration.java     # AccessManagementService, TransactionTemplate 빈 등록
     ├── AccessManagementWebConfiguration.java  # 관리자 인터셉터 등록 (/admin/**, /api/admin/**)

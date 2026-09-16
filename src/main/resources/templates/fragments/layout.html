@@ -25,10 +25,11 @@
 </header>
 
 <!-- 공통 사이드바. activeMenu('members'|'inquiries'|'access') 로 활성 메뉴를 지정한다.
-     권한 관리 메뉴는 ADMIN 에게만 노출된다. -->
+     회원 관리·권한 관리 메뉴는 ADMIN 에게만 노출된다. -->
 <aside th:fragment="sidebar(activeMenu)" class="member-sidebar">
     <nav class="member-menu" aria-label="주 메뉴">
-        <a class="member-menu-link"
+        <a th:if="${member.isAdmin()}"
+           class="member-menu-link"
            th:classappend="${activeMenu == 'members'} ? ' is-active' : ''"
            th:href="@{/members}" href="/members"
            th:attr="aria-current=${activeMenu == 'members'} ? 'page' : null">회원 관리</a>

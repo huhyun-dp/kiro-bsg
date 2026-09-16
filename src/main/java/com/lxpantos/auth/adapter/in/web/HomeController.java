@@ -14,7 +14,7 @@ public class HomeController {
     public String home(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         return session != null && session.getAttribute(SessionKeys.AUTHENTICATED_MEMBER) != null
-                ? "redirect:/members"
+                ? "redirect:/inquiries"
                 : "redirect:/login";
     }
 

@@ -227,17 +227,27 @@ class AccessManagementApiControllerTest {
 
     @Test
     void suspendedMemberSessionIsBlockedOnNextRequest() throws Exception {
-        MockHttpSession viewerSession =
-                sessionFor(viewerId, "access-test-viewer@example.com", "뷰어", MemberRole.VIEWER);
-        // 회원 목록 API 는 정상 (VIEWER 도 /api/members 는 접근 가능)
-        mockMvc.perform(get("/api/members").session(viewerSession))
+        // 회원 목록 API 는 ADMIN 전용이므로 ADMIN 세션으로 검증한다.
+        MockHttpSession adminSession = adminSession();
+        mockMvc.perform(get("/api/members").session(adminSession))
                 .andExpect(status().isOk());
 
-        // 관리자가 해당 회원을 정지시킨다.
-        jdbcTemplate.update("UPDATE members SET status = 'SUSPENDED' WHERE id = ?", viewerId);
+        // 해당 관리자를 정지시킨다.
+        jdbcTemplate.update("UPDATE members SET status = 'SUSPENDED' WHERE id = ?", adminId);
 
         // 기존 세션의 다음 요청은 차단된다(401).
-        mockMvc.perform(get("/api/members").session(viewerSession))
+        mockMvc.perform(get("/api/members").session(adminSession))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void memberListApiForbiddenForOperatorAndViewer() throws Exception {
+        // OPERATOR 이하는 회원 목록 API 에 접근하면 403 을 받는다.
+        mockMvc.perform(get("/api/members")
+                        .session(sessionFor(operatorId, "access-test-op@example.com", "운영자", MemberRole.OPERATOR)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/members")
+                        .session(sessionFor(viewerId, "access-test-viewer@example.com", "뷰어", MemberRole.VIEWER)))
+                .andExpect(status().isForbidden());
     }
 }

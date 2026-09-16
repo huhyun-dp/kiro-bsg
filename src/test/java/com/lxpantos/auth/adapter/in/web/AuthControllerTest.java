@@ -14,7 +14,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AuthControllerTest {
 
     @Test
-    void redirectsToMemberManagementAfterSuccessfulLogin() {
+    void redirectsToInquiriesAfterSuccessfulLogin() {
+        // 회원 관리 화면은 ADMIN 전용이 되었으므로, 로그인 성공 후에는 모든 회원이 이용 가능한
+        // 문의 요청 화면으로 이동한다.
         RegisterMemberUseCase registerMemberUseCase = command -> 1L;
         LoginUseCase loginUseCase = command -> new AuthenticatedMember(1L, command.email(), "홍길동", MemberRole.VIEWER);
         AuthController controller = new AuthController(registerMemberUseCase, loginUseCase);
@@ -26,6 +28,6 @@ class AuthControllerTest {
 
         String view = controller.login(form, new BeanPropertyBindingResult(form, "loginForm"), request);
 
-        assertThat(view).isEqualTo("redirect:/members");
+        assertThat(view).isEqualTo("redirect:/inquiries");
     }
 }

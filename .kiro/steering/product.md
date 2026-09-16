@@ -12,13 +12,14 @@ Spring Boot + MyBatis + MySQL 조합으로 구현된 회원 인증/관리 웹 �
 - **로그인**: 이메일/비밀번호로 인증 후 세션 발급
 - **로그아웃**: 세션 무효화 및 로그인 페이지 리다이렉트
 
-### 회원 관리
+### 회원 관리 (ADMIN 전용)
+- **접근 권한**: 회원 관리 화면(`/members`)과 회원 목록 API(`/api/members`)는 `ADMIN` 에게만 허용한다. `OPERATOR`/`VIEWER` 는 메뉴가 보이지 않고, 직접 접근 시 화면은 HTTP 403, API 는 HTTP 403 JSON 을 받는다.
 - **회원 목록 조회**: 등록된 전체 회원 목록을 TOAST UI Grid로 표시
 - **회원 검색**: 이름, 이메일, 휴대폰 번호 키워드 검색
 - **개인정보 보호**: 휴대폰 번호 마스킹 처리 (예: `010-****-5678`)
 
 ### 권한 관리 (Access Management, ADMIN 전용)
-- **메뉴 구조**: 로그인 후 좌측 사이드바는 `회원 관리`, `권한 관리` 두 최상위 메뉴로 구성. `권한 관리`(`/admin/access`)는 `ADMIN` 에게만 노출
+- **메뉴 구조**: 로그인 후 좌측 사이드바는 `회원 관리`, `문의 요청`, `권한 관리` 로 구성한다. `회원 관리`(`/members`)와 `권한 관리`(`/admin/access`)는 `ADMIN` 에게만 노출하고, `문의 요청`(`/inquiries`)은 모든 로그인 회원에게 노출한다.
 - **역할**: `ADMIN` / `OPERATOR` / `VIEWER` (신규 가입 기본값 `VIEWER`)
 - **계정 상태**: `ACTIVE` / `SUSPENDED` (신규 가입 기본값 `ACTIVE`)
 - **목록**: 이름·이메일·휴대폰 검색, 역할/상태 필터, 서버 사이드 페이지네이션, 전체 건수 표시
@@ -28,11 +29,12 @@ Spring Boot + MyBatis + MySQL 조합으로 구현된 회원 인증/관리 웹 �
 ## 주요 사용자 흐름
 
 1. 미인증 사용자가 `/` 접근 → `/login` 자동 리다이렉트
-2. 로그인 성공 → `/members` (회원 목록 페이지)로 이동
-3. `/members` 페이지 로드 후 AJAX로 `/api/members` 호출 → TOAST UI Grid 렌더링
+2. 로그인 성공 → `/inquiries` (문의 요청 목록)로 이동
+3. `ADMIN` 이 `회원 관리` 메뉴 → `/members` 진입 → AJAX로 `/api/members` 호출 → TOAST UI Grid 렌더링
 4. 인증 없이 `/members` 또는 `/api/**` 접근 → 각각 로그인 리다이렉트 / HTTP 401 응답
-5. `ADMIN` 이 `권한 관리` 메뉴 → `/admin/access` 진입 → AJAX로 `/api/admin/members` 호출 → 목록 렌더링, 회원 선택 후 역할/상태 변경 및 감사 로그 조회
-6. 비관리자가 `/admin/access` 직접 호출 → HTTP 403, 미인증 사용자는 로그인 화면으로 이동
+5. `OPERATOR`/`VIEWER` 가 `/members` 또는 `/api/members` 직접 호출 → 각각 HTTP 403 / HTTP 403 JSON
+6. `ADMIN` 이 `권한 관리` 메뉴 → `/admin/access` 진입 → AJAX로 `/api/admin/members` 호출 → 목록 렌더링, 회원 선택 후 역할/상태 변경 및 감사 로그 조회
+7. 비관리자가 `/admin/access` 직접 호출 → HTTP 403, 미인증 사용자는 로그인 화면으로 이동
 
 ## 비즈니스 규칙
 

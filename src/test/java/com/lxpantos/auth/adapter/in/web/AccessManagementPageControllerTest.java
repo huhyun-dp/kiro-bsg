@@ -62,21 +62,25 @@ class AccessManagementPageControllerTest {
     }
 
     @Test
-    void memberPageShowsAdminMenuOnlyToAdminAndKeepsInquiryMenu() throws Exception {
+    void memberPageIsAdminOnlyAndShowsAdminSidebar() throws Exception {
+        // ADMIN 은 회원 관리 화면에 접근할 수 있고, 회원 관리·권한 관리·문의 요청 메뉴가 보인다.
         mockMvc.perform(get("/members")
                         .session(sessionFor(adminId, "page-test-admin@example.com", MemberRole.ADMIN)))
                 .andExpect(status().isOk())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.containsString("href=\"/members\"")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
                         .string(org.hamcrest.Matchers.containsString("href=\"/admin/access\"")))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
                         .string(org.hamcrest.Matchers.containsString("href=\"/inquiries\"")));
+    }
+
+    @Test
+    void memberPageForbiddenForViewer() throws Exception {
+        // OPERATOR 이하(여기서는 VIEWER)는 회원 관리 화면에 접근하면 403 을 받는다.
         mockMvc.perform(get("/members")
                         .session(sessionFor(viewerId, "page-test-viewer@example.com", MemberRole.VIEWER)))
-                .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
-                        .string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("href=\"/admin/access\""))))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
-                        .string(org.hamcrest.Matchers.containsString("href=\"/inquiries\"")));
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -102,6 +106,9 @@ class AccessManagementPageControllerTest {
                 String sidebar = html.substring(html.indexOf("<aside"), html.indexOf("</aside>"));
                 org.assertj.core.api.Assertions.assertThat(sidebar.contains("href=\"/admin/access\""))
                         .as("admin menu on %s for %s", path, role).isEqualTo(role == MemberRole.ADMIN);
+                // 회원 관리 메뉴도 ADMIN 에게만 노출된다.
+                org.assertj.core.api.Assertions.assertThat(sidebar.contains("href=\"/members\""))
+                        .as("member menu on %s for %s", path, role).isEqualTo(role == MemberRole.ADMIN);
                 org.assertj.core.api.Assertions.assertThat(sidebar)
                         .containsPattern("(?s)<a[^>]*href=\"/inquiries\"[^>]*aria-current=\"page\"");
             }

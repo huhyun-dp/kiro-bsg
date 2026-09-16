@@ -16,10 +16,10 @@
 
 ## 권한 관리(Access Management)
 
-로그인 후 좌측 사이드바는 다음 메뉴로 구성됩니다. 일반 사용자는 회원 관리·문의 요청을,
-`ADMIN` 사용자는 권한 관리까지 총 세 개의 메뉴를 확인할 수 있습니다.
+로그인 후 좌측 사이드바는 다음 메뉴로 구성됩니다. 일반 사용자는 문의 요청만,
+`ADMIN` 사용자는 회원 관리·권한 관리까지 총 세 개의 메뉴를 확인할 수 있습니다.
 
-1. **회원 관리** — 모든 로그인 사용자에게 표시 (`/members`)
+1. **회원 관리** — `ADMIN` 역할에게만 표시 (`/members`)
 2. **문의 요청** — 모든 로그인 사용자에게 표시 (`/inquiries`)
 3. **권한 관리** — `ADMIN` 역할에게만 표시 (`/admin/access`)
 
@@ -179,8 +179,8 @@ MySQL은 Docker Compose로 실행하고 애플리케이션은 Maven Wrapper로 �
    .\mvnw.cmd spring-boot:run
    ```
 
-5. `http://localhost:8080/signup`에서 가입 후 로그인합니다. 로그인 성공 후 `/members` 회원관리
-   화면으로 이동합니다.
+5. `http://localhost:8080/signup`에서 가입 후 로그인합니다. 로그인 성공 후 `/inquiries` 문의 요청
+   화면으로 이동합니다. 회원관리 화면(`/members`)은 `ADMIN` 역할만 접근할 수 있습니다.
 
 회원관리 그리드는 CDN에서 TOAST UI Grid를 내려받으므로 브라우저에서 인터넷에 접근할 수 있어야
 합니다.
@@ -195,12 +195,12 @@ docker compose down
 
 | Method | 경로 | 인증 | 설명 |
 | --- | --- | --- | --- |
-| GET | `/` | 선택 | 로그인 상태에 따라 `/members` 또는 `/login`으로 이동 |
+| GET | `/` | 선택 | 로그인 상태에 따라 `/inquiries` 또는 `/login`으로 이동 |
 | GET, POST | `/signup` | 불필요 | 회원가입 화면과 가입 처리 |
 | GET, POST | `/login` | 불필요 | 로그인 화면과 인증 처리 |
 | POST | `/logout` | 필요 | 세션 무효화 후 로그인 화면으로 이동 |
-| GET | `/members` | 필요 | 회원 목록·검색 화면 |
-| GET | `/api/members?keyword=` | 필요 | 회원 전체 조회 또는 이름·이메일·휴대폰 번호 검색 |
+| GET | `/members` | ADMIN | 회원 목록·검색 화면(비관리자 403) |
+| GET | `/api/members?keyword=` | ADMIN | 회원 전체 조회 또는 이름·이메일·휴대폰 번호 검색(비관리자 403 JSON) |
 | GET | `/inquiries?page=1` | 필요 | 문의 목록(최신순, 페이지당 10건) |
 | GET | `/inquiries/new` | 필요 | 신규 문의 작성 화면 |
 | POST | `/inquiries` | 필요 | multipart 문의 등록(제목·내용·선택 첨부, CSRF 필요) |
@@ -213,8 +213,9 @@ docker compose down
 | GET | `/api/admin/members/{id}/audit-logs` | ADMIN | 회원 권한 변경 감사 로그 조회(최신순 페이지네이션) |
 
 미인증 화면 요청은 `/login`으로 이동하고 미인증 `/api/**` 요청은 HTTP 401과 한국어 JSON
-메시지를 반환합니다. 관리자 화면(`/admin/**`)에 비관리자가 접근하면 HTTP 403, 관리자 API
-(`/api/admin/**`)는 미인증 HTTP 401·권한 부족 HTTP 403 을 반환합니다.
+메시지를 반환합니다. 관리자 화면(`/admin/**`)과 회원 관리 화면(`/members`)에 비관리자가 접근하면
+HTTP 403, 관리자 API(`/api/admin/**`)와 회원 목록 API(`/api/members`)는 미인증 HTTP 401·권한 부족
+HTTP 403 을 반환합니다.
 
 ### 관리자 API 오류 응답
 
