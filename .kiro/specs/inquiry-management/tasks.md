@@ -32,7 +32,7 @@
 
 - [x] 4. 문의 상세
   - [x] 4.1 `GET /inquiries/{id}` 상세 표시(작성자 이름 조인)
-  - [x] 4.2 조회 시 조회수 +1 및 반영된 값 표시
+  - [x] 4.2 조회 시 조회수 증가 및 반영된 값 표시 — 작성자 본인 조회는 증가하지 않음(셀프 카운트 방지), 그 외 회원 조회는 +1. `getDetail(id, viewerMemberId)`로 조회자를 전달하고 작성자 ID와 비교
   - [x] 4.3 존재하지 않는 문의 → HTTP 404
 
 - [x] 5. 접근 제어·메뉴
@@ -83,17 +83,17 @@
   - [x] 9.8.3 문의 목록 템플릿/UI에 `hasAttachments=true` 행만 단순 첨부 표시와 접근 가능한 `첨부파일` 이름을 렌더링한다. 첨부 없는 행과 빈 목록에는 아이콘·숨김 텍스트·placeholder를 렌더링하지 않는다.
   - [-] 9.8.4 목록 query/mapper, controller/template 접근성 및 Property 8 회귀 테스트를 작성한다: 첨부 있음·없음, 빈 목록, 단일 목록 쿼리, `첨부파일` 접근 가능한 이름, attachment ID/storage key/path 비노출을 검증한다. **Validates: Requirements 6.1–6.6**
 
-- [ ] 9.9 첨부 크기 사람이 읽기 쉬운 표시 (코드 구현 전용)
-  - [ ] 9.9.1 저장된 첨부 바이트 값을 이진(1024 기반) 단위(B/KB/MB/…)로 규모에 맞춰 변환하는 표시 전용 포매팅을 추가한다. KB 이상은 소수점 1자리, 바이트는 정수로 나타내며 저장 바이트 값·검증 로직은 변경하지 않는다. **Implements: Requirements 5.20 (IA-07), Design 속성 9**
-  - [ ] 9.9.2 `inquiry/detail.html`과 `inquiry/form.html`의 기존 첨부 목록에 포맷된 크기를 표시한다. 저장 키·실제 파일 경로·다운로드 주소를 노출하지 않고 크기 이외 첨부 정보 노출 방침은 기존 설계를 유지한다. **Implements: Requirements 5.20 (IA-07), Design 속성 9**
+- [x] 9.9 첨부 크기 사람이 읽기 쉬운 표시 (코드 구현 전용)
+  - [x] 9.9.1 저장된 첨부 바이트 값을 이진(1024 기반) 단위(B/KB/MB/…)로 규모에 맞춰 변환하는 표시 전용 포매팅을 추가한다. KB 이상은 소수점 1자리, 바이트는 정수로 나타내며 저장 바이트 값·검증 로직은 변경하지 않는다. **Implements: Requirements 5.20 (IA-07), Design 속성 9**
+  - [x] 9.9.2 `inquiry/detail.html`과 `inquiry/form.html`의 기존 첨부 목록에 포맷된 크기를 표시한다. 저장 키·실제 파일 경로·다운로드 주소를 노출하지 않고 크기 이외 첨부 정보 노출 방침은 기존 설계를 유지한다. **Implements: Requirements 5.20 (IA-07), Design 속성 9**
 
-- [ ] 9.10 편집 화면 내 개별 첨부 즉시 삭제 (코드 구현 전용)
-  - [ ] 9.10.1 개별 삭제 인바운드 포트를 추가한다: `DeleteInquiryAttachmentUseCase`와 `DeleteInquiryAttachmentCommand`(inquiryId, attachmentId, 요청 회원 ID)를 정의한다. Spring·`MultipartFile`·`Path`는 application/domain 경계를 넘기지 않는다. 편집 POST의 `deleteAttachmentIds` 기반 지연 삭제를 대체한다. **Implements: Requirements 5.21, 5.22, Design 속성 6**
-  - [ ] 9.10.2 개별 삭제 애플리케이션 서비스를 구현한다: actor=author 확인, `(inquiryId, attachmentId)` 소속 검증, 소속 불일치 시 일반 404, DB 메타데이터 삭제와 커밋 후 저장 파일 제거, 커밋 후 제거 실패 시 경로 미노출 보안 로그·orphan reconciliation, 마지막 첨부 삭제(첨부 0개 상태) 허용을 구현한다. 편집 POST(`UpdateInquiryUseCase`)에서 삭제 처리·`deleteAttachmentIds` 계산을 제거하고 최종 개수·크기 기준을 현재 저장분 + 새 파일로 변경한다. **Implements: Requirements 5.13, 5.14, 5.21, 5.22, Design 속성 5, 6**
-  - [ ] 9.10.3 퍼시스턴스 어댑터·XML을 확인·정비한다: 기존 `(inquiryId, attachmentId)` 소속 검증 delete 매퍼를 즉시 삭제 흐름에서 재사용하고, 편집 aggregate 계산에서 삭제 반영 로직 의존을 제거한다. `inquiry_attachments` 스키마·저장 키·다운로드 호환성은 변경하지 않는다. **Implements: Requirements 5.21, 5.22**
-  - [ ] 9.10.4 웹 어댑터에 CSRF 보호 `POST /inquiries/{id}/attachments/{attachmentId}/delete` 엔드포인트를 추가한다: 작성자 검증, 미인증 로그인 리다이렉트, 비작성자 403, 소속 불일치 404, 성공 시 `GET /inquiries/{id}/edit` 리다이렉트를 구현한다. 편집 POST(`InquiryController`, `InquiryForm`)에서 `deleteAttachmentIds` 바인딩·처리를 제거한다. **Implements: Requirements 5.16, 5.17, 5.21, 5.22**
-  - [ ] 9.10.5 편집 템플릿을 수정한다: 기존 첨부 목록의 각 항목에 CSRF 토큰을 포함한 개별 삭제 POST 폼(삭제 버튼)을 두고, 편집 multipart 폼에서 `deleteAttachmentIds` 입력을 제거한다. 첨부 안내·목록 12px 범위와 다른 UI 글자 크기는 변경하지 않는다. **Implements: Requirements 5.19, 5.21**
-  - [ ] 9.10.6 단위·컨트롤러·통합 테스트를 작성한다: 작성자 즉시 삭제 성공(편집 리다이렉트), 소속 불일치 404, 비작성자 403, 미인증 리다이렉트, CSRF 실패 403, 마지막 첨부 삭제 허용, 커밋 후 파일 제거 실패 로깅, 편집 POST가 더 이상 삭제를 수행하지 않음(현재 저장분 + 새 파일 기준 5개/20 MiB 경계)을 실제 private temp storage와 H2로 검증한다. **Validates: Requirements 5.13, 5.14, 5.16, 5.17, 5.21, 5.22**
+- [x] 9.10 편집 화면 내 개별 첨부 즉시 삭제 (코드 구현 전용)
+  - [x] 9.10.1 개별 삭제 인바운드 포트를 추가한다: `DeleteInquiryAttachmentUseCase`와 `DeleteInquiryAttachmentCommand`(inquiryId, attachmentId, 요청 회원 ID)를 정의한다. Spring·`MultipartFile`·`Path`는 application/domain 경계를 넘기지 않는다. 편집 POST의 `deleteAttachmentIds` 기반 지연 삭제를 대체한다. **Implements: Requirements 5.21, 5.22, Design 속성 6**
+  - [x] 9.10.2 개별 삭제 애플리케이션 서비스를 구현한다: actor=author 확인, `(inquiryId, attachmentId)` 소속 검증, 소속 불일치 시 일반 404, DB 메타데이터 삭제와 커밋 후 저장 파일 제거, 커밋 후 제거 실패 시 경로 미노출 보안 로그·orphan reconciliation, 마지막 첨부 삭제(첨부 0개 상태) 허용을 구현한다. 편집 POST(`UpdateInquiryUseCase`)에서 삭제 처리·`deleteAttachmentIds` 계산을 제거하고 최종 개수·크기 기준을 현재 저장분 + 새 파일로 변경한다. **Implements: Requirements 5.13, 5.14, 5.21, 5.22, Design 속성 5, 6**
+  - [x] 9.10.3 퍼시스턴스 어댑터·XML을 확인·정비한다: 기존 `(inquiryId, attachmentId)` 소속 검증 delete 매퍼를 즉시 삭제 흐름에서 재사용하고, 편집 aggregate 계산에서 삭제 반영 로직 의존을 제거한다. `inquiry_attachments` 스키마·저장 키·다운로드 호환성은 변경하지 않는다. **Implements: Requirements 5.21, 5.22**
+  - [x] 9.10.4 웹 어댑터에 CSRF 보호 `POST /inquiries/{id}/attachments/{attachmentId}/delete` 엔드포인트를 추가한다: 작성자 검증, 미인증 로그인 리다이렉트, 비작성자 403, 소속 불일치 404, 성공 시 `GET /inquiries/{id}/edit` 리다이렉트를 구현한다. 편집 POST(`InquiryController`, `InquiryForm`)에서 `deleteAttachmentIds` 바인딩·처리를 제거한다. **Implements: Requirements 5.16, 5.17, 5.21, 5.22**
+  - [x] 9.10.5 편집 템플릿을 수정한다: 기존 첨부 목록의 각 항목에 CSRF 토큰을 포함한 개별 삭제 POST 폼(삭제 버튼)을 두고, 편집 multipart 폼에서 `deleteAttachmentIds` 입력을 제거한다. 첨부 안내·목록 12px 범위와 다른 UI 글자 크기는 변경하지 않는다. **Implements: Requirements 5.19, 5.21**
+  - [x] 9.10.6 단위·컨트롤러·통합 테스트를 작성한다: 작성자 즉시 삭제 성공(편집 리다이렉트), 소속 불일치 404, 비작성자 403, 미인증 리다이렉트, CSRF 실패 403, 마지막 첨부 삭제 허용, 커밋 후 파일 제거 실패 로깅, 편집 POST가 더 이상 삭제를 수행하지 않음(현재 저장분 + 새 파일 기준 5개/20 MiB 경계)을 실제 private temp storage와 H2로 검증한다. 9.10 리팩터로 stale 해진 컨트롤러/서비스 테스트(`InquiryControllerTest`, `InquiryServiceTest`)를 작성자 전용 편집 규칙과 현재 컨트롤러 동작에 맞춰 정정했다. `./mvnw -o test` 전체 139개 통과(1개 skip: Windows symlink 미지원 `LocalInquiryAttachmentStorageTest`, 본 작업과 무관). **Validates: Requirements 5.13, 5.14, 5.16, 5.17, 5.21, 5.22**
 
 ## Deferred product decisions (not implementation tasks)
 

@@ -47,7 +47,6 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Set;
 
 @Controller
 @RequestMapping("/inquiries")
@@ -106,7 +105,8 @@ public class InquiryController {
     }
     @GetMapping("/{id}") public String detail(@PathVariable Long id, HttpSession session, Model model) {
         try { SessionMember member = currentMember(session); model.addAttribute("member", member);
-            model.addAttribute("inquiry", inquiryQueryUseCase.getDetail(id)); model.addAttribute("canManage", isAuthor(id, member)); return "inquiry/detail";
+            Long viewerMemberId = member != null ? member.id() : null;
+            model.addAttribute("inquiry", inquiryQueryUseCase.getDetail(id, viewerMemberId)); model.addAttribute("canManage", isAuthor(id, member)); return "inquiry/detail";
         } catch (InquiryNotFoundException e) { throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e); }
     }
     @GetMapping("/{id}/edit")
@@ -135,7 +135,7 @@ public class InquiryController {
             List<PendingInquiryAttachment> newAttachments = validateEditAttachments(detail, inquiryForm);
             updateInquiryUseCase.update(new UpdateInquiryCommand(
                     id, member.id(), false, inquiryForm.getTitle(), inquiryForm.getContent(),
-                    newAttachments, Set.of()));
+                    newAttachments));
             return "redirect:/inquiries/" + id;
         } catch (InvalidInquiryAttachmentException e) {
             bindingResult.reject("inquiry.update", e.getMessage());

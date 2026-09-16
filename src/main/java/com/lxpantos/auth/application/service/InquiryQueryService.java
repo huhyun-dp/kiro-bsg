@@ -38,8 +38,14 @@ public class InquiryQueryService implements InquiryQueryUseCase {
                 .toList();
         return new InquiryPage(items, safePage, totalPages, totalCount);
     }
-    @Override public InquiryDetail getDetail(Long id) {
+    @Override public InquiryDetail getDetail(Long id, Long viewerMemberId) {
         InquiryQueryResult result = inquiryRepository.findById(id).orElseThrow(() -> new InquiryNotFoundException(id));
+        // 작성자 본인이 조회하면 조회수를 증가시키지 않는다(셀프 카운트 방지).
+        boolean viewedByAuthor = viewerMemberId != null
+                && inquiryRepository.findOwnerId(id).map(viewerMemberId::equals).orElse(false);
+        if (viewedByAuthor) {
+            return toDetail(result, result.viewCount());
+        }
         inquiryRepository.incrementViewCount(id);
         return toDetail(result, result.viewCount() + 1L);
     }
