@@ -110,18 +110,18 @@
 21. WHEN 인증된 작성자가 편집 화면에서 특정 첨부의 삭제를 요청하면, THE System SHALL `POST /inquiries/{id}/attachments/{attachmentId}/delete`로 해당 첨부 하나만 즉시 삭제한다. THE System SHALL 삭제 전 `(inquiryId, attachmentId)` 소속을 검증하고, 메타데이터 삭제(DB)와 커밋 후 저장 파일 제거를 수행하며, 성공 시 `GET /inquiries/{id}/edit`로 리다이렉트하여 편집 화면을 갱신한다. THE System SHALL 마지막 첨부의 삭제도 허용한다(첨부 0개 상태 허용). 🔶
 22. IF 개별 삭제 요청의 첨부가 없거나 요청 문의에 속하지 않으면, THEN THE System SHALL 저장 키·경로·내부 오류를 노출하지 않는 일반 HTTP 404를 반환한다. IF 커밋 후 저장 파일 제거가 실패하면, THEN THE System SHALL 경로를 노출하지 않고 보안 로그·orphan reconciliation 대상으로 남기되 DB 삭제 결과는 유지한다. 🔶
 
-### Requirement 6: 문의 목록의 첨부 표시 (예정)
+### Requirement 6: 문의 목록의 첨부 표시
 
 **User Story:** As an 인증된 회원, I want 문의 목록에서 첨부파일이 있는 문의를 즉시 식별할 수 있기를, so that 상세를 열기 전에 첨부 여부를 알 수 있다.
 
 #### Acceptance Criteria
 
-1. WHEN 인증된 회원이 `/inquiries` 목록을 조회하면, THE System SHALL 하나 이상의 첨부가 연결된 문의 행에 단순한 시각적 첨부 표시를 제공한다. 🔶
-2. THE System SHALL 해당 표시의 접근 가능한 이름으로 `첨부파일`을 제공하여, 아이콘만으로 정보를 전달하지 않는다. 🔶
-3. WHEN 문의에 첨부가 없으면, THE System SHALL 첨부 표시와 그에 대응하는 스크린 리더 텍스트를 렌더링하지 않는다. 🔶
-4. THE System SHALL 목록 페이지 데이터 조회에서 행별 추가 첨부 조회(N+1)를 수행하지 않고, 단일 목록 쿼리의 `EXISTS` 또는 동등한 집계 결과로 첨부 여부를 제공한다. 🔶
-5. THE System SHALL 목록 응답·템플릿·접근성 표시 어디에도 attachment ID, storage key, 실제 파일 경로 또는 다운로드 경로를 노출하지 않는다. 🔶
-6. WHEN 문의 목록이 비어 있으면, THE System SHALL 기존의 빈 목록·페이지네이션 동작을 유지하고 첨부 표시를 렌더링하지 않는다. 🔶
+1. WHEN 인증된 회원이 `/inquiries` 목록을 조회하면, THE System SHALL 하나 이상의 첨부가 연결된 문의 행에 `첨부파일(N)` 형식의 첨부 표시를 제공한다. 여기서 N은 해당 문의의 저장된 첨부 개수다. ✅
+2. THE System SHALL 해당 표시의 접근 가능한 이름으로 개수를 포함한 `첨부파일(N)` 텍스트를 제공하여, 아이콘만으로 정보를 전달하지 않는다. ✅
+3. WHEN 문의에 첨부가 없으면, THE System SHALL 첨부 표시와 그에 대응하는 스크린 리더 텍스트를 렌더링하지 않는다. ✅
+4. THE System SHALL 목록 페이지 데이터 조회에서 행별 추가 첨부 조회(N+1)를 수행하지 않고, 단일 목록 쿼리의 상관 `COUNT` 집계 결과로 첨부 개수를 제공한다. ✅
+5. THE System SHALL 목록 응답·템플릿·접근성 표시 어디에도 attachment ID, storage key, 실제 파일 경로 또는 다운로드 경로를 노출하지 않는다. 개수(집계값)만 노출한다. ✅
+6. WHEN 문의 목록이 비어 있으면, THE System SHALL 기존의 빈 목록·페이지네이션 동작을 유지하고 첨부 표시를 렌더링하지 않는다. ✅
 
 ## 업무 규칙 요약
 
@@ -139,7 +139,7 @@
 | IA-08 | 개별 첨부 삭제는 `POST /inquiries/{id}/attachments/{attachmentId}/delete`로 소속 검증 후 즉시 수행하고 편집 화면으로 리다이렉트하며, 마지막 첨부 삭제도 허용한다 | 🔶 |
 | IA-06 | 첨부 안내와 파일 목록만 12px로 축소한다 | ✅ (자동 검증 미실시) |
 | IA-07 | 상세·편집 화면의 첨부 크기는 이진(1024 기반) 단위로 규모에 맞춰 표시하고(KB 이상 소수점 1자리, 바이트는 정수) 표시 전용이며 저장 바이트를 바꾸지 않고 저장 키·경로를 노출하지 않는다 | 🔶 |
-| IL-01 | 문의 목록은 첨부 존재 여부만 접근 가능하게 표시하고, 단일 목록 쿼리로 조회하며 파일 식별자·경로를 노출하지 않는다 | 🔶 |
+| IL-01 | 문의 목록은 첨부 개수를 `첨부파일(N)`로 접근 가능하게 표시하고, 단일 목록 쿼리(상관 `COUNT`)로 조회하며 파일 식별자·경로를 노출하지 않는다 | ✅ |
 
 ## 확인이 필요한 사항
 
@@ -158,7 +158,7 @@
 
 새 UUID 비공개 파일은 저장·DB 작업 실패 시 보상 삭제한다. 개별 삭제 엔드포인트는 `(inquiryId, attachmentId)` 소속을 검증한 뒤 메타데이터를 삭제하고, 저장 파일은 DB 커밋 후 제거하며, 제거 실패는 경로를 드러내지 않고 orphan reconciliation 로그 대상으로 남긴다. 마지막 첨부의 삭제(첨부 0개 상태)도 허용한다. 현 `inquiry_attachments`의 행별 metadata schema는 이 aggregate invariant와 호환되므로 edit 전용 Liquibase changeSet은 추가되지 않았고, 기존 metadata·storage key·다운로드는 보존된다.
 
-**예정된 목록 표시 확장:** 문의 목록에는 첨부가 하나 이상인 행만 단순 시각 표시와 스크린 리더용 `첨부파일` 이름을 추가한다. 첨부가 없는 행과 빈 목록에는 표시를 만들지 않는다. 목록 read model은 attachment metadata나 파일 위치를 싣지 않고, 목록 SQL의 `EXISTS` 또는 동등한 집계로 `hasAttachments` boolean만 산출해 N+1 조회를 방지한다.
+**목록 표시:** 문의 목록에는 첨부가 하나 이상인 행에만 `첨부파일(N)` 표시(스크린 리더용 이름 포함)를 렌더링한다. 첨부가 없는 행과 빈 목록에는 표시를 만들지 않는다. 목록 read model은 attachment metadata나 파일 위치를 싣지 않고, 목록 SQL의 상관 `COUNT` 집계로 첨부 개수만 산출해 N+1 조회를 방지한다. `hasAttachments` 는 개수 > 0 에서 파생된다.
 
 **검증 상태:** 9.7.8 및 9.7.9는 사용자 요청으로 건너뛰었다. 따라서 편집 확장의 단위/속성, controller/integration/migration 회귀 검증은 수행되지 않았으며, 이 문서화 작업은 테스트·빌드·마이그레이션 통과를 의미하지 않는다.
 

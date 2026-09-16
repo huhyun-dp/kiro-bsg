@@ -65,9 +65,34 @@ class InquiryListAttachmentIndicatorIntegrationTest {
         String content = result.getResponse().getContentAsString();
         assertThat(countOccurrences(content, "첨부파일")).isEqualTo(1);
         assertThat(countOccurrences(content, "inquiry-attachment-indicator")).isEqualTo(1);
+        // 첨부가 1개인 문의는 개수와 함께 "첨부파일(1)" 로 표시된다.
+        assertThat(content).contains("첨부파일(1)");
         assertThat(content).contains("첨부 문의", "일반 문의");
         assertThat(content).doesNotContain(STORAGE_KEY, PRIVATE_PATH, "/attachments/", "download", "storage_key");
         verify(inquiryQueryRepository).countAll();
+        verify(inquiryQueryRepository).findPage(0, 10);
+        verifyNoInteractions(attachmentQueryRepository);
+    }
+
+    @Test
+    void attachmentIndicatorShowsFileCountWithoutMetadataExposure() throws Exception {
+        Long attachedInquiryId = insertInquiry("첨부 여러개", LocalDateTime.of(2024, 6, 3, 10, 0));
+        for (int i = 0; i < 3; i++) {
+            jdbcTemplate.update("INSERT INTO inquiry_attachments (inquiry_id, storage_key, original_filename, content_type, file_size, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    attachedInquiryId, java.util.UUID.randomUUID().toString(), PRIVATE_PATH, "application/pdf", 128L, LocalDateTime.now());
+        }
+
+        MvcResult result = mockMvc.perform(get("/inquiries").session(authenticatedSession()))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String content = result.getResponse().getContentAsString();
+        // 첨부 3개는 "첨부파일(3)" 으로 표시된다.
+        assertThat(content).contains("첨부파일(3)");
+        assertThat(countOccurrences(content, "inquiry-attachment-indicator")).isEqualTo(1);
+        // 개수만 노출하고 저장 키·경로·다운로드 주소는 노출하지 않는다.
+        assertThat(content).doesNotContain(PRIVATE_PATH, "/attachments/", "download", "storage_key");
+        // 행별 첨부 조회 없이 단일 목록 쿼리로 개수를 계산한다.
         verify(inquiryQueryRepository).findPage(0, 10);
         verifyNoInteractions(attachmentQueryRepository);
     }

@@ -34,7 +34,7 @@ public class InquiryQueryService implements InquiryQueryUseCase {
         int safePage = Math.max(1, Math.min(page, totalPages));
         List<InquirySummary> items = inquiryQueryRepository.findPage((safePage - 1) * pageSize, pageSize).stream()
                 .map(value -> new InquirySummary(
-                        value.id(), value.title(), value.viewCount(), value.createdAt(), value.hasAttachments()))
+                        value.id(), value.title(), value.viewCount(), value.createdAt(), value.attachmentCount()))
                 .toList();
         return new InquiryPage(items, safePage, totalPages, totalCount);
     }

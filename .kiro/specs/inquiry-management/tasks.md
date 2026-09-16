@@ -95,6 +95,12 @@
   - [x] 9.10.5 편집 템플릿을 수정한다: 기존 첨부 목록의 각 항목에 CSRF 토큰을 포함한 개별 삭제 POST 폼(삭제 버튼)을 두고, 편집 multipart 폼에서 `deleteAttachmentIds` 입력을 제거한다. 첨부 안내·목록 12px 범위와 다른 UI 글자 크기는 변경하지 않는다. **Implements: Requirements 5.19, 5.21**
   - [x] 9.10.6 단위·컨트롤러·통합 테스트를 작성한다: 작성자 즉시 삭제 성공(편집 리다이렉트), 소속 불일치 404, 비작성자 403, 미인증 리다이렉트, CSRF 실패 403, 마지막 첨부 삭제 허용, 커밋 후 파일 제거 실패 로깅, 편집 POST가 더 이상 삭제를 수행하지 않음(현재 저장분 + 새 파일 기준 5개/20 MiB 경계)을 실제 private temp storage와 H2로 검증한다. 9.10 리팩터로 stale 해진 컨트롤러/서비스 테스트(`InquiryControllerTest`, `InquiryServiceTest`)를 작성자 전용 편집 규칙과 현재 컨트롤러 동작에 맞춰 정정했다. `./mvnw -o test` 전체 139개 통과(1개 skip: Windows symlink 미지원 `LocalInquiryAttachmentStorageTest`, 본 작업과 무관). **Validates: Requirements 5.13, 5.14, 5.16, 5.17, 5.21, 5.22**
 
+- [x] 9.11 문의 목록 첨부 개수 표시 (존재 여부 → `첨부파일(N)` 확장)
+  - [x] 9.11.1 목록 read model(`InquiryListQueryResult`)과 query port(`InquirySummary`)의 `hasAttachments` boolean 을 `attachmentCount`(long)로 확장하고 `hasAttachments`를 개수>0 파생으로 둔다. 첨부 ID/저장 키/파일명/경로/다운로드 URL 은 목록 projection 에 포함하지 않는다(개수만 노출). **Implements: Requirements 6.1, 6.5**
+  - [x] 9.11.2 MyBatis 목록 SQL/XML 의 `EXISTS` 를 상관 `COUNT` 서브쿼리로 바꿔 단일 페이지 쿼리로 첨부 개수를 계산한다(N+1 금지). 기존 페이지네이션·정렬을 보존한다. **Implements: Requirements 6.4**
+  - [x] 9.11.3 `inquiry/list.html` 에 `attachmentCount > 0` 인 행만 `첨부파일(N)` 배지를 렌더링한다(배지 텍스트가 곧 접근성 이름). 첨부 없는 행·빈 목록에는 표시하지 않는다. **Implements: Requirements 6.1, 6.2, 6.3, 6.6**
+  - [x] 9.11.4 속성/통합 테스트를 개수 기준으로 갱신·추가한다: `attachmentCount` 보존과 `hasAttachments` 파생(`InquiryQueryServicePropertyTest`), `첨부파일(1)`·`첨부파일(3)` 표시, 단일 목록 쿼리(행별 첨부 조회 없음), 첨부 ID/저장 키/경로 미노출을 실제 H2 로 검증한다. `./mvnw -o clean package` 전체 148개 통과(1개 skip: Windows symlink 미지원, 본 작업과 무관). **Validates: Requirements 6.1–6.6, Design 속성 8**
+
 ## Deferred product decisions (not implementation tasks)
 
 | Item | Current policy |
@@ -134,12 +140,13 @@
     { "id": 21, "tasks": ["9.10.1"] },
     { "id": 22, "tasks": ["9.10.2", "9.10.3"] },
     { "id": 23, "tasks": ["9.10.4", "9.10.5"] },
-    { "id": 24, "tasks": ["9.10.6"] }
+    { "id": 24, "tasks": ["9.10.6"] },
+    { "id": 25, "tasks": ["9.11.1", "9.11.2", "9.11.3", "9.11.4"] }
   ]
 }
 ```
 
-The completed waves preserve the baseline and the implemented edit-extension history. Waves 15–18 add the list projection, single-query persistence mapping, accessible UI, and regression/property coverage for the planned attachment indicator. Waves 19–20 add the display-only human-readable attachment size formatting and its use in the detail/edit existing-attachment lists. Waves 21–24 replace the prior `deleteAttachmentIds` deferred deletion with the immediate per-attachment delete endpoint (use case/port, service·persistence, controller endpoint·edit template change, and tests), while the 9.7 completion history is preserved.
+The completed waves preserve the baseline and the implemented edit-extension history. Waves 15–18 add the list projection, single-query persistence mapping, accessible UI, and regression/property coverage for the planned attachment indicator. Waves 19–20 add the display-only human-readable attachment size formatting and its use in the detail/edit existing-attachment lists. Waves 21–24 replace the prior `deleteAttachmentIds` deferred deletion with the immediate per-attachment delete endpoint (use case/port, service·persistence, controller endpoint·edit template change, and tests), while the 9.7 completion history is preserved. Wave 25 extends the list attachment indicator from a presence boolean to a `첨부파일(N)` count via a single correlated `COUNT` query, updating the read model/summary, list SQL, template, and tests.
 
 ## Document Relations
 

@@ -7,6 +7,9 @@ public record InquirySummary(
         String title,
         Long viewCount,
         LocalDateTime createdAt,
-        boolean hasAttachments
+        long attachmentCount
 ) {
+    public boolean hasAttachments() {
+        return attachmentCount > 0;
+    }
 }

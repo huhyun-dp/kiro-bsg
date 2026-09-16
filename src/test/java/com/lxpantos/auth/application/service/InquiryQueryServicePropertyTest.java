@@ -23,26 +23,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 class InquiryQueryServicePropertyTest {
 
     @Property(tries = 100)
-    // Validates: Requirements 6.1, 6.4, 6.5
-    void property8_listAttachmentPresenceIsPreservedWithoutAttachmentReads(
-            @ForAll("attachmentPresencePatterns") List<Boolean> attachmentPresencePatterns) {
-        RecordingListRepository listRepository = new RecordingListRepository(attachmentPresencePatterns);
+    // Validates: Requirements 6.1, 6.4, 6.5, 6.6
+    void property8_listAttachmentCountIsPreservedWithoutAttachmentReads(
+            @ForAll("attachmentCountPatterns") List<Long> attachmentCountPatterns) {
+        RecordingListRepository listRepository = new RecordingListRepository(attachmentCountPatterns);
         InquiryQueryService service = new InquiryQueryService(listRepository, null, new FailingAttachmentQueryRepository());
 
         InquiryPage page = service.getPage(1, 25);
 
+        // 목록 요약은 저장소가 계산한 첨부 개수를 그대로 전달한다.
+        assertThat(page.items()).extracting(item -> item.attachmentCount())
+                .containsExactlyElementsOf(attachmentCountPatterns);
+        // hasAttachments 는 개수 > 0 에서 파생된다.
         assertThat(page.items()).extracting(item -> item.hasAttachments())
-                .containsExactlyElementsOf(attachmentPresencePatterns);
+                .containsExactlyElementsOf(attachmentCountPatterns.stream().map(count -> count > 0).toList());
         assertThat(listRepository.countAllCalls).isEqualTo(1);
         assertThat(listRepository.findPageCalls).isEqualTo(1);
+        // 목록 projection 에는 첨부 식별자·저장 키·경로·다운로드 주소가 없다(개수만 노출).
         assertThat(List.of(InquiryListQueryResult.class.getRecordComponents()))
                 .extracting(RecordComponent::getName)
-                .containsExactly("id", "title", "viewCount", "createdAt", "hasAttachments");
+                .containsExactly("id", "title", "viewCount", "createdAt", "attachmentCount");
     }
 
     @Provide
-    Arbitrary<List<Boolean>> attachmentPresencePatterns() {
-        return Arbitraries.of(true, false).list().ofMaxSize(20);
+    Arbitrary<List<Long>> attachmentCountPatterns() {
+        return Arbitraries.longs().between(0, 5).list().ofMaxSize(20);
     }
 
     private static final class RecordingListRepository implements InquiryQueryRepository {
@@ -50,14 +55,14 @@ class InquiryQueryServicePropertyTest {
         private int countAllCalls;
         private int findPageCalls;
 
-        private RecordingListRepository(List<Boolean> attachmentPresencePatterns) {
-            this.rows = IntStream.range(0, attachmentPresencePatterns.size())
+        private RecordingListRepository(List<Long> attachmentCountPatterns) {
+            this.rows = IntStream.range(0, attachmentCountPatterns.size())
                     .mapToObj(index -> new InquiryListQueryResult(
                             (long) index + 1,
                             "문의 " + index,
                             0L,
                             LocalDateTime.of(2024, 1, 1, 0, 0).plusMinutes(index),
-                            attachmentPresencePatterns.get(index)))
+                            attachmentCountPatterns.get(index)))
                     .toList();
         }
 

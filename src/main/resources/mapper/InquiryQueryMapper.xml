@@ -6,11 +6,11 @@
 
     <resultMap id="inquiryListQueryResultMap" type="com.lxpantos.auth.application.port.out.InquiryListQueryResult">
         <constructor>
-            <idArg column="id"              javaType="java.lang.Long"/>
-            <arg   column="title"           javaType="java.lang.String"/>
-            <arg   column="view_count"      javaType="java.lang.Long"/>
-            <arg   column="created_at"      javaType="java.time.LocalDateTime"/>
-            <arg   column="has_attachments" javaType="_boolean"/>
+            <idArg column="id"               javaType="java.lang.Long"/>
+            <arg   column="title"            javaType="java.lang.String"/>
+            <arg   column="view_count"       javaType="java.lang.Long"/>
+            <arg   column="created_at"       javaType="java.time.LocalDateTime"/>
+            <arg   column="attachment_count" javaType="_long"/>
         </constructor>
     </resultMap>
 
@@ -19,11 +19,11 @@
                i.title,
                i.view_count,
                i.created_at,
-               EXISTS (
-                   SELECT 1
+               (
+                   SELECT COUNT(*)
                    FROM inquiry_attachments a
                    WHERE a.inquiry_id = i.id
-               ) AS has_attachments
+               ) AS attachment_count
         FROM inquiries i
         JOIN members m ON m.id = i.member_id
         WHERE i.deleted = FALSE

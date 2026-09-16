@@ -59,7 +59,8 @@
                            th:href="@{/inquiries/{id}(id=${item.id})}"
                            th:text="${item.title}">제목</a>
                         <span class="inquiry-attachment-indicator"
-                              th:if="${item.hasAttachments}">첨부파일</span>
+                              th:if="${item.hasAttachments}"
+                              th:text="'첨부파일(' + ${item.attachmentCount} + ')'">첨부파일(0)</span>
                     </td>
                     <td class="col-view" th:text="${item.viewCount}">0</td>
                     <td class="col-date"
